@@ -1,140 +1,163 @@
 'use client';
 
-import { useState } from 'react';
-import { GAMES } from '@/lib/mock';
-import { MOCK_PLAYER_PRICES, type PlayerPrice } from '@/lib/mock';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import {
+  fetchMyPrices,
+  upsertPrice,
+  deletePrice,
+  type PlayerPrice,
+} from '@/lib/order';
 
 export default function PlayerPricesPage() {
-  const [enabled, setEnabled] = useState(true);
-  const [prices, setPrices] = useState<PlayerPrice[]>(MOCK_PLAYER_PRICES);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editValue, setEditValue] = useState('');
+  const [prices, setPrices] = useState<PlayerPrice[]>([]);
+  const [games, setGames] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [saving, setSaving] = useState(false);
 
-  function startEdit(p: PlayerPrice) {
-    setEditingId(p.id);
-    setEditValue(p.pricePerHour.toString());
+  const [newGameId, setNewGameId] = useState<number>(0);
+  const [newTier, setNewTier] = useState<string>('娱乐');
+  const [newPrice, setNewPrice] = useState<string>('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function load() {
+      if (!supabase) return;
+      const [p, g] = await Promise.all([
+        fetchMyPrices(),
+        supabase.from('games').select('id, name').eq('status', 'active'),
+      ]);
+      setPrices(p);
+      setGames(g.data || []);
+      setLoading(false);
+    }
+    load();
+  }, [refreshKey]);
+
+  async function handleAdd() {
+    setError('');
+    if (!newGameId) return setError('请选择游戏');
+    const priceNum = parseFloat(newPrice);
+    if (!priceNum || priceNum < 9.9) return setError('最低 9.9 元/时');
+
+    setSaving(true);
+    const r = await upsertPrice({
+      gameId: newGameId,
+      tier: newTier,
+      pricePerHour: priceNum,
+    });
+    setSaving(false);
+
+    if (!r.ok) return setError(r.error || '保存失败');
+
+    setNewPrice('');
+    setNewGameId(0);
+    setRefreshKey((k) => k + 1);
   }
 
-  function saveEdit(id: number) {
-    const val = parseFloat(editValue);
-    if (isNaN(val) || val < 9.9) {
-      alert('散陪最低 9.9 元/时');
-      return;
-    }
-    setPrices(prices.map((p) => (p.id === id ? { ...p, pricePerHour: val } : p)));
-    setEditingId(null);
+  async function handleDelete(id: number) {
+    if (!confirm('确定删除这条价格？')) return;
+    const r = await deletePrice(id);
+    if (!r.ok) return alert(r.error || '删除失败');
+    setRefreshKey((k) => k + 1);
+  }
+
+  function gameName(id: number) {
+    return games.find((g) => g.id === id)?.name || '未知游戏';
   }
 
   return (
     <>
       <div className="player-header">
         <h1 className="player-title">散陪定价</h1>
-        <p className="player-subtitle">开启散陪后，可按自己的价格接单</p>
+        <p className="player-subtitle">设了价格才能接抢单池的订单</p>
       </div>
 
-      <div className="player-toggle-card">
-        <div>
-          <div className="player-toggle-title">开通散陪接单</div>
-          <div className="player-toggle-desc">
-            开启后，玩家可以在展示页直接预约你，按散陪价结算
-          </div>
-        </div>
-        <button
-          className={'player-toggle ' + (enabled ? 'on' : 'off')}
-          onClick={() => setEnabled(!enabled)}
-        >
-          <span className="player-toggle-dot" />
-        </button>
-      </div>
-
-      {enabled && (
-        <>
-          <div className="player-section">
-            <h2 className="player-section-title">我的散陪价</h2>
-            <div className="player-price-list">
-              {prices.map((p) => (
-                <div key={p.id} className="player-price-item">
-                  <div className="player-price-info">
-                    <div className="player-price-game">{p.game}</div>
-                    <div className="player-price-tier">{p.tier}</div>
-                  </div>
-
-                  <div className="player-price-right">
-                    {editingId === p.id ? (
-                      <>
-                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>¥</span>
-                        <input
-                          className="player-price-input"
-                          type="number"
-                          step="0.5"
-                          min="9.9"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          autoFocus
-                        />
-                        <button
-                          className="player-btn-sm"
-                          onClick={() => saveEdit(p.id)}
-                        >
-                          保存
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="player-price-value">
-                          ¥{p.pricePerHour.toFixed(2)}/时
-                        </span>
-                        <button
-                          className="player-btn-sm"
-                          onClick={() => startEdit(p)}
-                        >
-                          修改
-                        </button>
-                      </>
-                    )}
-                  </div>
+      <div className="player-section">
+        <h2 className="player-section-title">我的散陪价</h2>
+        {loading ? (
+          <div className="player-empty">加载中…</div>
+        ) : prices.length === 0 ? (
+          <div className="player-empty">还没设置价格，在下方新增</div>
+        ) : (
+          <div className="player-price-list">
+            {prices.map((p) => (
+              <div key={p.id} className="player-price-item">
+                <div className="player-price-info">
+                  <div className="player-price-game">{gameName(p.game_id)}</div>
+                  <div className="player-price-tier">{p.tier}</div>
                 </div>
-              ))}
-            </div>
+                <div className="player-price-right">
+                  <span className="player-price-value">
+                    ¥{Number(p.price_per_hour).toFixed(2)}/时
+                  </span>
+                  <button
+                    className="player-btn-sm player-btn-danger"
+                    onClick={() => handleDelete(p.id)}
+                  >
+                    删除
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
+        )}
+      </div>
 
-          <div className="player-section">
-            <h2 className="player-section-title">新增价格</h2>
-            <div className="player-add-form">
-              <select className="player-select">
-                <option>选择游戏</option>
-                {GAMES.map((g) => (
-                  <option key={g}>{g}</option>
-                ))}
-              </select>
-              <select className="player-select">
-                <option>选择档位</option>
-                <option>娱乐</option>
-                <option>技术</option>
-              </select>
-              <input
-                className="player-input"
-                type="number"
-                step="0.5"
-                placeholder="时薪（最低 9.9）"
-              />
-              <button className="player-btn-primary" onClick={() => alert('新增价格（demo）')}>
-                新增
-              </button>
-            </div>
-          </div>
+      <div className="player-section">
+        <h2 className="player-section-title">新增价格</h2>
+        <div className="player-add-form">
+          <select
+            className="player-select"
+            value={newGameId}
+            onChange={(e) => setNewGameId(Number(e.target.value))}
+          >
+            <option value={0}>选择游戏</option>
+            {games.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
 
-          <div className="player-note">
-            💡 说明：散陪只有「娱乐」「技术」两个档位，金牌/魔王/明星需加入店铺后由店铺授予。
-          </div>
-        </>
-      )}
+          <select
+            className="player-select"
+            value={newTier}
+            onChange={(e) => setNewTier(e.target.value)}
+          >
+            <option value="娱乐">娱乐</option>
+            <option value="技术">技术</option>
+          </select>
 
-      {!enabled && (
-        <div className="player-empty">
-          已关闭散陪接单，你只能通过店铺身份接单
+          <input
+            className="player-input"
+            type="number"
+            step="0.5"
+            placeholder="时薪（最低 9.9）"
+            value={newPrice}
+            onChange={(e) => setNewPrice(e.target.value)}
+          />
+
+          <button
+            className="player-btn-primary"
+            onClick={handleAdd}
+            disabled={saving}
+          >
+            {saving ? '保存中…' : '新增'}
+          </button>
         </div>
-      )}
+
+        {error && (
+          <div style={{ color: '#f87171', fontSize: '0.85rem', marginTop: '0.6rem' }}>
+            {error}
+          </div>
+        )}
+
+        <div className="player-note" style={{ marginTop: '1rem' }}>
+          💡 散陪只有「娱乐」「技术」两个档位。
+          <br />
+          平台抽成 2%，你拿 98%。
+        </div>
+      </div>
     </>
   );
 }

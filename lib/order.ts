@@ -104,3 +104,52 @@ export async function acceptOrder(
   const data = await res.json();
   return data.ok ? { ok: true, order: data.order } : { ok: false, error: data.error };
 }
+
+export async function cancelOrder(
+  orderId: number
+): Promise<{ ok: boolean; order?: Order; error?: string }> {
+  const res = await fetch(`/api/orders/${orderId}/cancel`, { method: 'POST' });
+  const data = await res.json();
+  return data.ok ? { ok: true, order: data.order } : { ok: false, error: data.error };
+}
+
+// ============================================================
+// 陪玩散陪价
+// ============================================================
+export type PlayerPrice = {
+  id: number;
+  game_id: number;
+  tier: string;
+  boss_rank: string | null;
+  price_per_hour: number;
+  is_active: boolean;
+};
+
+export async function fetchMyPrices(): Promise<PlayerPrice[]> {
+  const res = await fetch('/api/player/prices', { cache: 'no-store' });
+  const data = await res.json();
+  if (!data.ok) return [];
+  return data.prices as PlayerPrice[];
+}
+
+export async function upsertPrice(payload: {
+  gameId: number;
+  tier: string;
+  pricePerHour: number;
+}): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch('/api/player/prices', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  return data.ok ? { ok: true } : { ok: false, error: data.error };
+}
+
+export async function deletePrice(
+  id: number
+): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch('/api/player/prices/' + id, { method: 'DELETE' });
+  const data = await res.json();
+  return data.ok ? { ok: true } : { ok: false, error: data.error };
+}
