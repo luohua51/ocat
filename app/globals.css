@@ -3580,3 +3580,16 @@ button {
   cursor: pointer;
   margin-bottom: 1rem;
 }
+
+.review-display-stars {
+  font-size: 1.4rem;
+}
+
+.review-display-stars span {
+  color: rgba(255, 255, 255, 0.15);
+  margin-right: 0.15rem;
+}
+
+.review-display-stars span.active {
+  color: #FBBF24;
+}

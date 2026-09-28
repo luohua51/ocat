@@ -1,82 +1,100 @@
+'use client';
+
 import Link from 'next/link';
-import { fetchPlayers } from '@/lib/db';
-import { TIER_COLORS } from '@/lib/mock';
-import { sortPlayers } from '@/lib/utils';
+import { useEffect, useState } from 'react';
+import { fetchCurrentUser, type User } from '@/lib/auth';
 
-export const dynamic = 'force-dynamic';
+type ShopInfo = {
+  id: number;
+  name: string;
+  description: string | null;
+  playerCount: number;
+};
 
-export default async function HomePage() {
-  const players = await fetchPlayers();
-  const sorted = sortPlayers(players).slice(0, 4);
+export default function ShopDashboardPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [shop, setShop] = useState<ShopInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const u = await fetchCurrentUser();
+      setUser(u);
+      if (!u || !u.shopId) {
+        setLoading(false);
+        return;
+      }
+      const res = await fetch('/api/shops', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.ok && data.shops.length > 0) {
+        setShop(data.shops[0]);
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  if (loading) {
+    return <div className="shop-empty">加载中…</div>;
+  }
+
+  if (!user || !shop) {
+    return <div className="shop-empty">店铺信息不存在</div>;
+  }
 
   return (
     <>
-      <nav className="navbar">
-        <div className="brand">🐱 陪玩平台</div>
-        <div className="nav-links">
-          <Link href="/players">全部陪玩</Link>
-          <Link href="/login">登录</Link>
-          <Link href="/login?tab=register">注册</Link>
+      <div className="shop-header">
+        <h1 className="shop-title">{shop.name}</h1>
+        <p className="shop-subtitle">{shop.description || '暂无简介'}</p>
+      </div>
+
+      <div className="shop-stats">
+        <div className="shop-stat-card">
+          <div className="shop-stat-label">本店陪玩</div>
+          <div className="shop-stat-value">{shop.playerCount}</div>
         </div>
-      </nav>
-
-      <main className="main">
-        <div className="hero">
-          <h1>优质陪玩展示</h1>
-          <p>专业陪玩 · 快乐上分 · 陪你赢到天明</p>
+        <div className="shop-stat-card">
+          <div className="shop-stat-label">店铺 ID</div>
+          <div className="shop-stat-value">{shop.id}</div>
         </div>
-
-        {players.length === 0 && (
-          <div className="empty">暂无陪玩数据</div>
-        )}
-
-        <div className="cards">
-          {sorted.map((p) => (
-            <Link key={p.id} href={`/players/${p.id}`} className="card">
-              <div className="avatar">
-                {p.avatar ? <img src={p.avatar} alt={p.name} /> : p.name.charAt(0)}
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.4rem',
-                }}
-              >
-                <div className="name">{p.name}</div>
-                <span
-                  style={{
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    color: '#fff',
-                    padding: '0.15rem 0.5rem',
-                    borderRadius: '999px',
-                    background:
-                      TIER_COLORS[p.tier as keyof typeof TIER_COLORS] || '#6b7280',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {p.tier}
-                </span>
-              </div>
-
-              <div className="meta">
-                {p.games.length > 0 ? p.games.join(' · ') : '暂无游戏'}
-                <br />
-                {p.shopName}
-              </div>
-
-              <div className="price">
-                {p.price > 0 ? `¥${p.price}/时起` : '价格待定'}
-              </div>
-
-              <span className="btn">查看详情</span>
-            </Link>
-          ))}
+        <div className="shop-stat-card">
+          <div className="shop-stat-label">店长</div>
+          <div className="shop-stat-value" style={{ fontSize: '1.1rem', paddingTop: '0.5rem' }}>
+            {user.nickname}
+          </div>
         </div>
-      </main>
+        <div className="shop-stat-card">
+          <div className="shop-stat-label">状态</div>
+          <div className="shop-stat-value" style={{ color: '#34d399', fontSize: '1.1rem', paddingTop: '0.5rem' }}>
+            正常营业
+          </div>
+        </div>
+      </div>
+
+      <div className="shop-section">
+        <div className="shop-section-head">
+          <h2 className="shop-section-title">快捷操作</h2>
+        </div>
+        <div className="shop-quick-actions">
+          <Link href="/shop/players" className="shop-action-card">
+            <div className="shop-action-icon">👥</div>
+            <div className="shop-action-label">陪玩管理</div>
+          </Link>
+          <Link href="/shop/prices" className="shop-action-card">
+            <div className="shop-action-icon">💰</div>
+            <div className="shop-action-label">价格管理</div>
+          </Link>
+          <Link href="/shop/certifications" className="shop-action-card">
+            <div className="shop-action-icon">🏆</div>
+            <div className="shop-action-label">限定认证</div>
+          </Link>
+        </div>
+      </div>
+
+      <div className="shop-note">
+        💡 数据与超级管理员实时同步。超管创建店铺 → 你可以直接登录管理。
+      </div>
     </>
   );
 }

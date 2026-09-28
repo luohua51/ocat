@@ -1,27 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {
-  fetchUsers,
-  createUser,
-  resetPasswordByAdmin,
-  deleteUser,
-  fetchCurrentUser,
-  type User,
-} from '@/lib/auth';
+import { fetchUsers, createUser, resetPasswordByAdmin, deleteUser, type User } from '@/lib/auth';
 
 export default function ShopPlayersPage() {
   const [list, setList] = useState<User[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
-  const [me, setMe] = useState<User | null>(null);
 
   const [newName, setNewName] = useState('');
   const [newAccount, setNewAccount] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchCurrentUser().then(setMe);
+    // 店长的 fetchUsers 在后端会自动按 shopId 过滤
     fetchUsers({ role: 'player' }).then(setList);
   }, [refreshKey]);
 
@@ -30,15 +23,17 @@ export default function ShopPlayersPage() {
     if (!newName.trim()) return setError('请输入陪玩昵称');
     if (!newAccount.trim()) return setError('请输入登录账号');
 
+    setSubmitting(true);
     const r = await createUser({
       username: newAccount.trim(),
       nickname: newName.trim(),
       role: 'player',
     });
+    setSubmitting(false);
 
     if (!r.ok) return setError(r.error || '创建失败');
 
-    alert(`创建成功！\n账号：${newAccount}\n初始密码：123456\n首次登录需修改`);
+    alert(`创建成功！\n账号：${newAccount}\n初始密码：123456`);
     setNewName('');
     setNewAccount('');
     setShowCreate(false);
@@ -88,7 +83,9 @@ export default function ShopPlayersPage() {
           </div>
           {error && <div className="admin-form-error">{error}</div>}
           <div className="admin-form-actions">
-            <button className="shop-btn-primary" onClick={handleCreate}>确认创建</button>
+            <button className="shop-btn-primary" onClick={handleCreate} disabled={submitting}>
+              {submitting ? '创建中…' : '确认创建'}
+            </button>
           </div>
           <div className="admin-note" style={{ marginTop: '0.8rem' }}>
             初始密码 <b>123456</b>，首次登录必须修改。
