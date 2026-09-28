@@ -1,0 +1,193 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import {
+  fetchConversation,
+  sendMessage,
+  fetchNewMessages,
+  type Conversation,
+  type Message,
+} from '@/lib/chat';
+
+export default function MemberChatRoomPage() {
+  const params = useParams();
+  const conversationId = Number(params.id);
+
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [canSend, setCanSend] = useState(true);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastIdRef = useRef<number>(0);
+
+  // 初始加载
+  useEffect(() => {
+    async function load() {
+      const data = await fetchConversation(conversationId);
+      if (!data.conversation) {
+        setLoading(false);
+        return;
+      }
+      setConversation(data.conversation);
+      setMessages(data.messages);
+      setCanSend(data.canSend);
+      lastIdRef.current =
+        data.messages.length > 0
+          ? data.messages[data.messages.length - 1].id
+          : 0;
+      setLoading(false);
+    }
+    load();
+  }, [conversationId]);
+
+  // 轮询新消息（每 3 秒）
+  useEffect(() => {
+    if (!conversationId) return;
+    const timer = setInterval(async () => {
+      const data = await fetchNewMessages(conversationId, lastIdRef.current);
+      if (data.messages.length > 0) {
+        setMessages((prev) => [...prev, ...data.messages]);
+        lastIdRef.current = data.messages[data.messages.length - 1].id;
+      }
+      setCanSend(data.canSend);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [conversationId]);
+
+  // 自动滚到底
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  async function handleSend() {
+    if (!input.trim() || sending) return;
+    setSending(true);
+
+    const content = input.trim();
+    setInput('');
+
+    const r = await sendMessage({
+      conversationId,
+      content,
+    });
+
+    setSending(false);
+
+    if (!r.ok) {
+      alert(r.error || '发送失败');
+      setInput(content);
+      return;
+    }
+
+    if (r.message) {
+      setMessages((prev) => [...prev, r.message!]);
+      lastIdRef.current = r.message.id;
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }
+
+  function formatTime(t: string) {
+    const d = new Date(t);
+    return d.toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  if (loading) return <div className="member-empty">加载中…</div>;
+
+  if (!conversation) {
+    return (
+      <>
+        <div className="member-header">
+          <h1 className="member-title">会话不存在</h1>
+        </div>
+        <Link href="/member/chat" className="member-more">
+          ← 返回会话列表
+        </Link>
+      </>
+    );
+  }
+
+  return (
+    <div className="chat-room">
+      <div className="chat-room-header">
+        <Link href="/member/chat" className="chat-room-back">
+          ←
+        </Link>
+        <div className="chat-room-peer">
+          <div className="chat-room-peer-avatar">
+            {conversation.player_name.charAt(0)}
+          </div>
+          <div>
+            <div className="chat-room-peer-name">{conversation.player_name}</div>
+            <div className="chat-room-peer-sub">订单 #{conversation.order_id}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="chat-room-messages">
+        {messages.length === 0 ? (
+          <div className="chat-room-empty">还没有消息，打个招呼吧 👋</div>
+        ) : (
+          messages.map((m) => {
+            const isMine = m.sender_role === 'member';
+            return (
+              <div
+                key={m.id}
+                className={'chat-msg ' + (isMine ? 'mine' : 'theirs')}
+              >
+                {!isMine && (
+                  <div className="chat-msg-avatar">
+                    {m.sender_name.charAt(0)}
+                  </div>
+                )}
+                <div className="chat-msg-bubble-wrap">
+                  <div className="chat-msg-bubble">{m.content}</div>
+                  <div className="chat-msg-time">{formatTime(m.created_at)}</div>
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {!canSend && (
+        <div className="chat-room-locked">
+          🔒 该订单已被其他陪玩接走，无法继续发送消息
+        </div>
+      )}
+
+      <div className="chat-room-input">
+        <textarea
+          className="chat-room-textarea"
+          placeholder={canSend ? '输入消息，回车发送' : '无法发送'}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={!canSend || sending}
+          rows={1}
+        />
+        <button
+          className="chat-room-send"
+          onClick={handleSend}
+          disabled={!canSend || sending || !input.trim()}
+        >
+          {sending ? '发送中' : '发送'}
+        </button>
+      </div>
+    </div>
+  );
+}

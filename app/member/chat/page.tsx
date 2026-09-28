@@ -2,42 +2,72 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { fetchCurrentUser, type User } from '@/lib/auth';
+import { fetchConversations, type Conversation } from '@/lib/chat';
 
 export default function MemberChatPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const [list, setList] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCurrentUser().then(setUser);
+    fetchConversations().then((data) => {
+      setList(data);
+      setLoading(false);
+    });
   }, []);
 
-  if (!user) {
-    return <div style={{ color: '#fff', padding: '2rem', textAlign: 'center' }}>加载中…</div>;
+  function formatTime(t: string | null) {
+    if (!t) return '';
+    const d = new Date(t);
+    const now = new Date();
+    const diff = now.getTime() - d.getTime();
+    if (diff < 60 * 1000) return '刚刚';
+    if (diff < 60 * 60 * 1000) return Math.floor(diff / 60000) + ' 分钟前';
+    if (diff < 24 * 60 * 60 * 1000) return Math.floor(diff / 3600000) + ' 小时前';
+    return d.toLocaleDateString('zh-CN');
   }
 
   return (
     <>
       <div className="member-header">
         <h1 className="member-title">消息</h1>
-        <p className="member-subtitle">共 0 个会话</p>
+        <p className="member-subtitle">
+          {loading ? '加载中…' : `共 ${list.length} 个会话`}
+        </p>
       </div>
 
-      <div className="member-empty">暂无会话</div>
-
-      <div
-        style={{
-          marginTop: '1.5rem',
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px dashed rgba(255,122,0,0.3)',
-          borderRadius: '0.9rem',
-          padding: '1rem 1.2rem',
-          color: 'rgba(255,255,255,0.5)',
-          fontSize: '0.85rem',
-          textAlign: 'center',
-        }}
-      >
-        💬 聊天功能开发中，下单后可与陪玩沟通
-      </div>
+      {loading ? (
+        <div className="member-empty">加载中…</div>
+      ) : list.length === 0 ? (
+        <div className="member-empty">暂无会话，去下单或联系陪玩试试</div>
+      ) : (
+        <div className="member-chat-list">
+          {list.map((c) => (
+            <Link
+              key={c.id}
+              href={`/member/chat/${c.id}`}
+              className="member-chat-item"
+            >
+              <div className="member-chat-avatar">
+                {c.player_name.charAt(0)}
+              </div>
+              <div className="member-chat-body">
+                <div className="member-chat-name">{c.player_name}</div>
+                <div className="member-chat-msg">
+                  {c.last_message || '（还没消息）'}
+                </div>
+              </div>
+              <div className="member-chat-right">
+                <div className="member-chat-time">
+                  {formatTime(c.last_message_at)}
+                </div>
+                {c.unreadCount && c.unreadCount > 0 ? (
+                  <div className="member-chat-badge">{c.unreadCount}</div>
+                ) : null}
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </>
   );
 }
