@@ -67,23 +67,46 @@ export default function PlayerLayout({ children }: { children: React.ReactNode }
     return () => clearInterval(timer);
   }, [user]);
 
-  // 状态心跳（每 60 秒）
+  // 状态：进入自动上线 + 心跳保活
   useEffect(() => {
     if (!user) return;
 
-    async function checkStatus() {
+    async function init() {
       const s = await fetchMyStatus();
       setStatus(s);
+
+      // 进入陪玩端时，如果当前是 offline，自动上线（busy 不动）
+      if (s === 'offline') {
+        const r = await toggleMyStatus();
+        if (r.ok && r.status) {
+          setStatus(r.status);
+        }
+      }
     }
 
-    checkStatus();
+    init();
+
+    // 心跳：每 60 秒一次；同时刷新一下状态
     const timer = setInterval(async () => {
       await sendHeartbeat();
-      await checkStatus();
+      const s = await fetchMyStatus();
+      setStatus(s);
     }, 60 * 1000);
 
-    // 页面关闭时，主动上报一次心跳（不是真的关闭，浏览器无法保证）
-    return () => clearInterval(timer);
+    // 离开页面时（切 tab / 关页面）发送一次心跳，让状态保留
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') {
+        // 回到页面：立刻心跳一下
+        sendHeartbeat();
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [user]);
 
   async function handleToggle() {
@@ -135,9 +158,7 @@ export default function PlayerLayout({ children }: { children: React.ReactNode }
           <div className="player-user-name">{user.nickname}</div>
 
           <button
-            className={
-              'player-status-toggle status-' + status
-            }
+            className={'player-status-toggle status-' + status}
             onClick={handleToggle}
             disabled={toggling || status === 'busy'}
           >
