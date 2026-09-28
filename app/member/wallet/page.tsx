@@ -1,10 +1,20 @@
 'use client';
 
-import { useState } from 'react';
-import { MOCK_TRANSACTIONS } from '@/lib/mock';
+import { useEffect, useState } from 'react';
+import { fetchCurrentUser, type User } from '@/lib/auth';
 
 export default function MemberWalletPage() {
-  const [balance] = useState(200);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    fetchCurrentUser().then(setUser);
+  }, []);
+
+  if (!user) {
+    return <div style={{ color: '#fff', padding: '2rem', textAlign: 'center' }}>加载中…</div>;
+  }
+
+  const balance = 0;
 
   return (
     <>
@@ -21,26 +31,7 @@ export default function MemberWalletPage() {
 
       <div className="member-section">
         <h2 className="member-section-title">流水记录</h2>
-
-        <div className="member-tx-list">
-          {MOCK_TRANSACTIONS.map((t) => (
-            <div key={t.id} className="member-tx-item">
-              <div className="member-tx-left">
-                <div className={'member-tx-type ' + t.type}>
-                  {t.type === 'recharge' ? '充值' : '消费'}
-                </div>
-                <div className="member-tx-desc">{t.description}</div>
-                <div className="member-tx-time">{t.createdAt}</div>
-              </div>
-              <div className="member-tx-right">
-                <div className={'member-tx-amount ' + t.type}>
-                  {t.type === 'recharge' ? '+' : '-'}¥{t.amount.toFixed(2)}
-                </div>
-                <div className="member-tx-balance">余额 ¥{t.balanceAfter.toFixed(2)}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <div className="member-empty">暂无流水</div>
       </div>
     </>
   );
