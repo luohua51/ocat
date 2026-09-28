@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   fetchConversation,
   sendMessage,
@@ -11,9 +11,11 @@ import {
   type Message,
 } from '@/lib/chat';
 import { fetchCurrentUser } from '@/lib/auth';
+import ChatOrderCard from '@/components/ChatOrderCard';
 
 export default function PlayerChatRoomPage() {
   const params = useParams();
+  const router = useRouter();
   const conversationId = Number(params.id);
 
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -27,14 +29,12 @@ export default function PlayerChatRoomPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastIdRef = useRef<number>(0);
 
-  // 拉当前用户 id
   useEffect(() => {
     fetchCurrentUser().then((u) => {
       if (u) setMyUserId(u.id);
     });
   }, []);
 
-  // 初始加载
   useEffect(() => {
     async function load() {
       const data = await fetchConversation(conversationId);
@@ -44,7 +44,6 @@ export default function PlayerChatRoomPage() {
       }
       setConversation(data.conversation);
 
-      // 按 id 去重
       const unique = Array.from(
         new Map(data.messages.map((m) => [m.id, m])).values()
       );
@@ -57,7 +56,6 @@ export default function PlayerChatRoomPage() {
     load();
   }, [conversationId]);
 
-  // 轮询新消息
   useEffect(() => {
     if (!conversationId) return;
     const timer = setInterval(async () => {
@@ -75,7 +73,6 @@ export default function PlayerChatRoomPage() {
     return () => clearInterval(timer);
   }, [conversationId]);
 
-  // 自动滚到底
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -157,6 +154,17 @@ export default function PlayerChatRoomPage() {
           </div>
         </div>
       </div>
+
+      <ChatOrderCard
+        orderId={conversation.order_id}
+        role="player"
+        onOrderUpdate={(o) => {
+          // 订单被接走时，切换会话可发送状态
+          if (o.player_id && o.player_id !== myUserId) {
+            setCanSend(false);
+          }
+        }}
+      />
 
       <div className="chat-room-messages">
         {messages.length === 0 ? (

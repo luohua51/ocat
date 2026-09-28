@@ -3838,3 +3838,114 @@ button {
     border-radius: 0.7rem;
   }
 }
+
+/* ============================================================
+   聊天订单卡片
+   ============================================================ */
+.chat-order-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1rem 1.2rem;
+  flex-shrink: 0;
+}
+
+.chat-order-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.chat-order-card-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 0.2rem;
+}
+
+.chat-order-card-sub {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.chat-order-card-status {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.chat-order-card-remark {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.7rem;
+}
+
+.chat-order-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.chat-order-card-amount {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #059669;
+}
+
+.chat-order-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.chat-order-card-btn {
+  padding: 0.4rem 0.9rem;
+  border-radius: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.chat-order-card-btn.ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.chat-order-card-btn.ghost:hover {
+  border-color: #FF7A00;
+  color: #FF7A00;
+}
+
+.chat-order-card-btn.primary {
+  background: linear-gradient(135deg, #FF7A00, #F97316);
+  color: #fff;
+  border: none;
+}
+
+.chat-order-card-btn.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(255, 122, 0, 0.4);
+}
+
+.chat-order-card-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat-order-card-tip {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.5);
+}

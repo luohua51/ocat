@@ -11,6 +11,7 @@ import {
   type Message,
 } from '@/lib/chat';
 import { fetchCurrentUser } from '@/lib/auth';
+import ChatOrderCard from '@/components/ChatOrderCard';
 
 export default function MemberChatRoomPage() {
   const params = useParams();
@@ -148,6 +149,8 @@ export default function MemberChatRoomPage() {
           </div>
         </div>
       </div>
+
+      <ChatOrderCard orderId={conversation.order_id} role="member" />
 
       <div className="chat-room-messages">
         {messages.length === 0 ? (
