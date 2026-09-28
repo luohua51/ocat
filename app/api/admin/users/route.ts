@@ -4,6 +4,9 @@ import { getSessionUser } from '@/lib/auth-server';
 
 export const dynamic = 'force-dynamic';
 
+// ============================================================
+// GET
+// ============================================================
 export async function GET(req: Request) {
   if (!supabaseAdmin) {
     return Response.json({ ok: false, error: '服务器未配置' }, { status: 500 });
@@ -23,7 +26,6 @@ export async function GET(req: Request) {
 
   if (role) q = q.eq('role', role);
 
-  // 店长只能看本店
   if (me.role === 'shop_admin') {
     q = q.eq('shop_id', me.shopId);
   } else if (shopIdParam) {
@@ -36,6 +38,9 @@ export async function GET(req: Request) {
   return Response.json({ ok: true, users: data || [] });
 }
 
+// ============================================================
+// POST 创建账号
+// ============================================================
 export async function POST(req: Request) {
   if (!supabaseAdmin) {
     return Response.json({ ok: false, error: '服务器未配置' }, { status: 500 });
@@ -51,7 +56,6 @@ export async function POST(req: Request) {
   const username = String(body.username || '').trim();
   const nickname = String(body.nickname || '').trim();
   const role = String(body.role || 'player');
-  const playerId = body.playerId ? Number(body.playerId) : null;
 
   if (!username) return Response.json({ ok: false, error: '请输入账号' }, { status: 400 });
   if (!nickname) return Response.json({ ok: false, error: '请输入昵称' }, { status: 400 });
@@ -77,6 +81,37 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, error: '该账号已被使用' }, { status: 400 });
   }
 
+  // ============================================================
+  // 如果是陪玩，先创建 players 记录
+  // ============================================================
+  let playerId: number | null = body.playerId ? Number(body.playerId) : null;
+
+  if (role === 'player' && !playerId) {
+    const { data: newPlayer, error: playerErr } = await supabaseAdmin
+      .from('players')
+      .insert({
+        name: nickname,
+        tier: '娱乐',
+        status: 'offline',
+        weekly_orders: 0,
+        rating: 100,
+      })
+      .select('id')
+      .single();
+
+    if (playerErr || !newPlayer) {
+      return Response.json(
+        { ok: false, error: '创建陪玩基础资料失败：' + (playerErr?.message || '') },
+        { status: 500 }
+      );
+    }
+
+    playerId = newPlayer.id;
+  }
+
+  // ============================================================
+  // 创建账号
+  // ============================================================
   const hash = bcrypt.hashSync('123456', 10);
 
   const { data: created, error } = await supabaseAdmin
@@ -91,10 +126,14 @@ export async function POST(req: Request) {
       must_change_password: true,
       status: 'active',
     })
-    .select('id, username, role, nickname, shop_id')
+    .select('id, username, role, nickname, shop_id, player_id')
     .single();
 
   if (error || !created) {
+    // 回滚 players 记录
+    if (playerId && role === 'player' && !body.playerId) {
+      await supabaseAdmin.from('players').delete().eq('id', playerId);
+    }
     return Response.json({ ok: false, error: error?.message || '创建失败' }, { status: 500 });
   }
 

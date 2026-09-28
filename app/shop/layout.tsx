@@ -19,18 +19,38 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCurrentUser().then((u) => {
-      if (!u) {
-        router.replace('/login?redirect=' + pathname);
-        return;
+    let cancelled = false;
+
+    async function init() {
+      try {
+        const u = await fetchCurrentUser();
+        if (cancelled) return;
+
+        if (!u) {
+          router.replace('/login?redirect=' + pathname);
+          return;
+        }
+
+        // 放宽：shop_admin 和 super_admin 都能进
+        if (u.role !== 'shop_admin' && u.role !== 'super_admin') {
+          router.replace('/login');
+          return;
+        }
+
+        setUser(u);
+        setLoading(false);
+      } catch (err) {
+        console.error('[shop layout] 加载用户失败', err);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-      if (u.role !== 'shop_admin') {
-        router.replace('/login');
-        return;
-      }
-      setUser(u);
-      setLoading(false);
-    });
+    }
+
+    init();
+    return () => {
+      cancelled = true;
+    };
   }, [router, pathname]);
 
   if (loading || !user) {
@@ -43,9 +63,16 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
         <div className="shop-logo">🏪 店铺管理</div>
         <nav className="shop-nav">
           {MENU.map((item) => {
-            const active = item.href === '/shop' ? pathname === '/shop' : pathname.startsWith(item.href);
+            const active =
+              item.href === '/shop'
+                ? pathname === '/shop'
+                : pathname.startsWith(item.href);
             return (
-              <Link key={item.href} href={item.href} className={'shop-nav-item' + (active ? ' active' : '')}>
+              <Link
+                key={item.href}
+                href={item.href}
+                className={'shop-nav-item' + (active ? ' active' : '')}
+              >
                 <span className="shop-nav-icon">{item.icon}</span>
                 <span>{item.label}</span>
               </Link>

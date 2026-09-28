@@ -24,18 +24,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCurrentUser().then((u) => {
-      if (!u) {
-        router.replace('/login?redirect=' + pathname);
-        return;
+    let cancelled = false;
+
+    async function init() {
+      try {
+        const u = await fetchCurrentUser();
+        if (cancelled) return;
+
+        if (!u) {
+          router.replace('/login?redirect=' + pathname);
+          return;
+        }
+
+        // 放宽：super_admin 和 admin 都能进
+        if (u.role !== 'super_admin' && u.role !== 'admin') {
+          router.replace('/login');
+          return;
+        }
+
+        setUser(u);
+        setLoading(false);
+      } catch (err) {
+        console.error('[admin layout] 加载用户失败', err);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-      if (u.role !== 'super_admin') {
-        router.replace('/login');
-        return;
-      }
-      setUser(u);
-      setLoading(false);
-    });
+    }
+
+    init();
+    return () => {
+      cancelled = true;
+    };
   }, [router, pathname]);
 
   if (loading || !user) {
@@ -48,9 +68,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="admin-logo">🐱 平台管理</div>
         <nav className="admin-nav">
           {MENU.map((item) => {
-            const active = item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href);
+            const active =
+              item.href === '/admin'
+                ? pathname === '/admin'
+                : pathname.startsWith(item.href);
             return (
-              <Link key={item.href} href={item.href} className={'admin-nav-item' + (active ? ' active' : '')}>
+              <Link
+                key={item.href}
+                href={item.href}
+                className={'admin-nav-item' + (active ? ' active' : '')}
+              >
                 <span className="admin-nav-icon">{item.icon}</span>
                 <span>{item.label}</span>
               </Link>
