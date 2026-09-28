@@ -3593,3 +3593,36 @@ button {
 .review-display-stars span.active {
   color: #FBBF24;
 }
+
+/* 店铺端快捷操作 */
+.shop-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.shop-action-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.9rem;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.shop-action-card:hover {
+  background: rgba(255, 122, 0, 0.1);
+  border-color: rgba(255, 122, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+.shop-action-icon {
+  font-size: 2rem;
+  margin-bottom: 0.6rem;
+}
+
+.shop-action-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
