@@ -10,6 +10,7 @@ import {
   type Conversation,
   type Message,
 } from '@/lib/chat';
+import { fetchCurrentUser } from '@/lib/auth';
 
 export default function MemberChatRoomPage() {
   const params = useParams();
@@ -21,11 +22,17 @@ export default function MemberChatRoomPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [canSend, setCanSend] = useState(true);
+  const [myUserId, setMyUserId] = useState<number | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastIdRef = useRef<number>(0);
 
-  // 初始加载
+  useEffect(() => {
+    fetchCurrentUser().then((u) => {
+      if (u) setMyUserId(u.id);
+    });
+  }, []);
+
   useEffect(() => {
     async function load() {
       const data = await fetchConversation(conversationId);
@@ -35,7 +42,6 @@ export default function MemberChatRoomPage() {
       }
       setConversation(data.conversation);
 
-      // 按 id 去重
       const unique = Array.from(
         new Map(data.messages.map((m) => [m.id, m])).values()
       );
@@ -48,7 +54,6 @@ export default function MemberChatRoomPage() {
     load();
   }, [conversationId]);
 
-  // 轮询新消息（每 3 秒）
   useEffect(() => {
     if (!conversationId) return;
     const timer = setInterval(async () => {
@@ -66,7 +71,6 @@ export default function MemberChatRoomPage() {
     return () => clearInterval(timer);
   }, [conversationId]);
 
-  // 自动滚到底
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -78,11 +82,7 @@ export default function MemberChatRoomPage() {
     const content = input.trim();
     setInput('');
 
-    const r = await sendMessage({
-      conversationId,
-      content,
-    });
-
+    const r = await sendMessage({ conversationId, content });
     setSending(false);
 
     if (!r.ok) {
@@ -115,7 +115,9 @@ export default function MemberChatRoomPage() {
     });
   }
 
-  if (loading) return <div className="member-empty">加载中…</div>;
+  if (loading || myUserId === null) {
+    return <div className="member-empty">加载中…</div>;
+  }
 
   if (!conversation) {
     return (
@@ -152,7 +154,7 @@ export default function MemberChatRoomPage() {
           <div className="chat-room-empty">还没有消息，打个招呼吧 👋</div>
         ) : (
           messages.map((m) => {
-            const isMine = m.sender_role === 'member';
+            const isMine = m.sender_id === myUserId;
             return (
               <div
                 key={m.id}

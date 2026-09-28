@@ -10,6 +10,7 @@ import {
   type Conversation,
   type Message,
 } from '@/lib/chat';
+import { fetchCurrentUser } from '@/lib/auth';
 
 export default function PlayerChatRoomPage() {
   const params = useParams();
@@ -21,9 +22,17 @@ export default function PlayerChatRoomPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [canSend, setCanSend] = useState(true);
+  const [myUserId, setMyUserId] = useState<number | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastIdRef = useRef<number>(0);
+
+  // 拉当前用户 id
+  useEffect(() => {
+    fetchCurrentUser().then((u) => {
+      if (u) setMyUserId(u.id);
+    });
+  }, []);
 
   // 初始加载
   useEffect(() => {
@@ -35,6 +44,7 @@ export default function PlayerChatRoomPage() {
       }
       setConversation(data.conversation);
 
+      // 按 id 去重
       const unique = Array.from(
         new Map(data.messages.map((m) => [m.id, m])).values()
       );
@@ -47,7 +57,7 @@ export default function PlayerChatRoomPage() {
     load();
   }, [conversationId]);
 
-  // 轮询
+  // 轮询新消息
   useEffect(() => {
     if (!conversationId) return;
     const timer = setInterval(async () => {
@@ -110,7 +120,9 @@ export default function PlayerChatRoomPage() {
     });
   }
 
-  if (loading) return <div className="player-empty">加载中…</div>;
+  if (loading || myUserId === null) {
+    return <div className="player-empty">加载中…</div>;
+  }
 
   if (!conversation) {
     return (
@@ -151,7 +163,7 @@ export default function PlayerChatRoomPage() {
           <div className="chat-room-empty">还没有消息，打个招呼吧 👋</div>
         ) : (
           messages.map((m) => {
-            const isMine = m.sender_role === 'player';
+            const isMine = m.sender_id === myUserId;
             return (
               <div
                 key={m.id}

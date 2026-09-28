@@ -8,11 +8,16 @@ export default function PlayerChatPage() {
   const [list, setList] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
 
+  async function load() {
+    const data = await fetchConversations();
+    setList(data);
+    setLoading(false);
+  }
+
   useEffect(() => {
-    fetchConversations().then((data) => {
-      setList(data);
-      setLoading(false);
-    });
+    load();
+    const timer = setInterval(load, 5000);
+    return () => clearInterval(timer);
   }, []);
 
   function formatTime(t: string | null) {
@@ -60,9 +65,11 @@ export default function PlayerChatPage() {
                 <div className="player-chat-time">
                   {formatTime(c.last_message_at)}
                 </div>
-                {c.unreadCount && c.unreadCount > 0 ? (
-                  <div className="player-chat-badge">{c.unreadCount}</div>
-                ) : null}
+                {c.unreadCount !== undefined && c.unreadCount > 0 && (
+                  <div className="player-chat-badge">
+                    {c.unreadCount > 99 ? '99+' : c.unreadCount}
+                  </div>
+                )}
               </div>
             </Link>
           ))}
