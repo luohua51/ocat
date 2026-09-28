@@ -4,7 +4,7 @@ import { getSessionUser } from '@/lib/auth-server';
 export const dynamic = 'force-dynamic';
 
 // ============================================================
-// GET /api/orders  列表（会员看自己的，陪玩看自己接的）
+// GET /api/orders  列表
 // ============================================================
 export async function GET() {
   if (!supabaseAdmin) {
@@ -23,7 +23,6 @@ export async function GET() {
   } else if (me.role === 'shop_admin') {
     q = q.eq('shop_id', me.shopId);
   }
-  // super_admin 看全部
 
   const { data, error } = await q.limit(200);
   if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
@@ -46,7 +45,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const playerId = Number(body.playerId);
+  const playerId = body.playerId ? Number(body.playerId) : null;
   const gameId = Number(body.gameId);
   const tier = String(body.tier || '');
   const bossRank = String(body.bossRank || '');
@@ -54,21 +53,27 @@ export async function POST(req: Request) {
   const identityType = String(body.identityType || 'freelance');
   const remark = String(body.remark || '');
 
-  if (!playerId) return Response.json({ ok: false, error: '请选择陪玩' }, { status: 400 });
   if (!gameId) return Response.json({ ok: false, error: '请选择游戏' }, { status: 400 });
   if (!tier) return Response.json({ ok: false, error: '请选择档位' }, { status: 400 });
   if (!durationHours || durationHours <= 0) {
     return Response.json({ ok: false, error: '请填写时长' }, { status: 400 });
   }
 
-  // 查陪玩信息
-  const { data: player } = await supabaseAdmin
-    .from('players')
-    .select('id, name, avatar, tier')
-    .eq('id', playerId)
-    .maybeSingle();
+  const isDesignated = !!playerId;
 
-  if (!player) return Response.json({ ok: false, error: '陪玩不存在' }, { status: 404 });
+  // 查陪玩（指定单才查）
+  let player: any = null;
+  if (isDesignated) {
+    const { data } = await supabaseAdmin
+      .from('players')
+      .select('id, name, avatar, tier')
+      .eq('id', playerId)
+      .maybeSingle();
+    player = data;
+    if (!player) {
+      return Response.json({ ok: false, error: '陪玩不存在' }, { status: 404 });
+    }
+  }
 
   // 查游戏名
   const { data: game } = await supabaseAdmin
@@ -76,19 +81,23 @@ export async function POST(req: Request) {
     .select('id, name')
     .eq('id', gameId)
     .maybeSingle();
-
   if (!game) return Response.json({ ok: false, error: '游戏不存在' }, { status: 404 });
 
-  // 查价格
+  // 价格计算
   let unitPrice = 0;
   let shopId: number | null = null;
   let shopFee = 0;
+  let baseAmount = 0;
+  let platformFee = 0;
+  let finalAmount = 0;
+  let playerIncome = 0;
 
-  if (identityType === 'freelance') {
+  if (isDesignated) {
+    // 指定单：从该陪玩的散陪价查
     const { data: price } = await supabaseAdmin
       .from('player_prices')
       .select('price_per_hour')
-      .eq('player_id', playerId)
+      .eq('player_id', playerId!)
       .eq('game_id', gameId)
       .eq('tier', tier)
       .eq('is_active', true)
@@ -98,19 +107,21 @@ export async function POST(req: Request) {
       return Response.json({ ok: false, error: '该陪玩未设置此档位价格' }, { status: 400 });
     }
     unitPrice = Number(price.price_per_hour);
+    baseAmount = unitPrice * durationHours;
+    platformFee = baseAmount * 0.02;
+    finalAmount = baseAmount;
+    playerIncome = baseAmount - platformFee;
   } else {
-    // 店铺单：暂时从玩家的店铺关联里取，本批先不做完整支持
-    return Response.json({ ok: false, error: '店铺单暂未开放' }, { status: 400 });
+    // 不指定：价格待定，接单后由陪玩报价
+    unitPrice = 0;
+    baseAmount = 0;
+    platformFee = 0;
+    finalAmount = 0;
+    playerIncome = 0;
   }
 
-  const baseAmount = unitPrice * durationHours;
-  // 平台抽成：散陪 2%，店铺 1%
-  const platformFee = identityType === 'freelance' ? baseAmount * 0.02 : baseAmount * 0.01;
-  const finalAmount = baseAmount;
-  const playerIncome = baseAmount - platformFee - shopFee;
-
-  // 生成订单号
   const orderNo = 'OC' + Date.now();
+  const status = isDesignated ? 'pending_player' : 'pooling';
 
   const { data: created, error } = await supabaseAdmin
     .from('orders')
@@ -118,8 +129,8 @@ export async function POST(req: Request) {
       order_no: orderNo,
       member_id: me.id,
       member_name: me.nickname,
-      player_id: playerId,
-      player_name: player.name,
+      player_id: player?.id || null,
+      player_name: player?.name || null,
       shop_id: shopId,
       identity_type: identityType,
       game_id: gameId,
@@ -133,9 +144,9 @@ export async function POST(req: Request) {
       platform_fee: platformFee,
       shop_fee: shopFee,
       player_income: playerIncome,
-      status: 'pending_player',   // 直接进入待陪玩响应
-      is_designated: true,
-      paid_at: new Date().toISOString(),
+      status,
+      is_designated: isDesignated,
+      paid_at: isDesignated ? new Date().toISOString() : null,
       remark,
     })
     .select('*')

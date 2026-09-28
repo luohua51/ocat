@@ -23,7 +23,6 @@ function CreateContent() {
   const [remark, setRemark] = useState('');
   const [error, setError] = useState('');
 
-  // 拉陪玩和游戏列表
   useEffect(() => {
     async function load() {
       if (!supabase) return;
@@ -39,23 +38,22 @@ function CreateContent() {
   }, []);
 
   const player = players.find((p) => p.id === playerId);
-  const game = games.find((g) => g.id === gameId);
+  const isDesignated = playerId > 0;
 
-  const unitPrice = 30; // 简化：先写死，真实价格由后端算
-  const total = unitPrice * hours;
+  const unitPrice = 30;
+  const total = isDesignated ? unitPrice * hours : 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
 
-    if (!playerId) return setError('请选择陪玩');
     if (!gameId) return setError('请选择游戏');
     if (!bossRank.trim()) return setError('请填写你的段位');
     if (hours <= 0) return setError('时长必须大于 0');
 
     setSubmitting(true);
     const result = await createOrder({
-      playerId,
+      playerId: isDesignated ? playerId : 0,
       gameId,
       tier,
       bossRank,
@@ -81,7 +79,7 @@ function CreateContent() {
     <>
       <div className="member-header">
         <h1 className="member-title">下单</h1>
-        <p className="member-subtitle">填写需求，系统自动算价</p>
+        <p className="member-subtitle">选择指定陪玩，或发单让陪玩来抢</p>
       </div>
 
       <form onSubmit={handleSubmit} className="member-create-form">
@@ -92,13 +90,14 @@ function CreateContent() {
             value={playerId}
             onChange={(e) => setPlayerId(Number(e.target.value))}
           >
-            <option value={0}>请选择陪玩</option>
+            <option value={0}>🎯 不指定（发到抢单池，陪玩来抢）</option>
             {players.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}（{p.tier}）
               </option>
             ))}
           </select>
+
           {player && (
             <div className="member-player-preview">
               <div className="member-player-preview-avatar">{player.name.charAt(0)}</div>
@@ -106,6 +105,26 @@ function CreateContent() {
                 <div style={{ fontWeight: 700, color: '#fff' }}>{player.name}</div>
                 <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>散陪</div>
               </div>
+            </div>
+          )}
+
+          {!isDesignated && (
+            <div
+              style={{
+                marginTop: '0.8rem',
+                padding: '0.8rem 1rem',
+                background: 'rgba(99, 102, 241, 0.08)',
+                border: '1px dashed rgba(99, 102, 241, 0.4)',
+                borderRadius: '0.7rem',
+                fontSize: '0.82rem',
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1.7,
+              }}
+            >
+              📢 不指定陪玩，订单会进入<strong style={{ color: '#818cf8' }}>抢单池</strong>，
+              所有陪玩都能看到并抢单。
+              <br />
+              价格由接单的陪玩确定，接单后你可以确认或换人。
             </div>
           )}
         </div>
@@ -184,13 +203,13 @@ function CreateContent() {
           <div>
             <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>单价</div>
             <div style={{ fontSize: '1rem', fontWeight: 700, color: '#fff' }}>
-              ¥{unitPrice.toFixed(2)}/时
+              {isDesignated ? `¥${unitPrice.toFixed(2)}/时` : '待定'}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>总价</div>
             <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#FF7A00' }}>
-              ¥{total.toFixed(2)}
+              {isDesignated ? `¥${total.toFixed(2)}` : '待接单后确定'}
             </div>
           </div>
         </div>
@@ -198,7 +217,7 @@ function CreateContent() {
         {error && <div className="member-create-error">{error}</div>}
 
         <button type="submit" className="member-submit-btn" disabled={submitting}>
-          {submitting ? '提交中…' : '提交订单'}
+          {submitting ? '提交中…' : isDesignated ? '提交订单' : '发布到抢单池'}
         </button>
       </form>
     </>
