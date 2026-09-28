@@ -5,12 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { fetchCurrentUser, logout, type User } from '@/lib/auth';
 import { fetchConversations } from '@/lib/chat';
-import {
-  fetchMyStatus,
-  toggleMyStatus,
-  sendHeartbeat,
-  type PlayerStatus,
-} from '@/lib/player';
 
 const MENU = [
   { href: '/player', label: '工作台', icon: '🏠' },
@@ -22,23 +16,18 @@ const MENU = [
   { href: '/player/profile', label: '个人资料', icon: '👤' },
 ];
 
-const STATUS_TEXT: Record<PlayerStatus, string> = {
-  online: '🟢 接单中',
-  offline: '⚪ 已离线',
-  busy: '🟠 服务中',
-};
-
 export default function PlayerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [unread, setUnread] = useState(0);
-  const [status, setStatus] = useState<PlayerStatus>('offline');
-  const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     fetchCurrentUser().then((u) => {
+      if (cancelled) return;
       if (!u) {
         router.replace('/login?redirect=' + pathname);
         return;
@@ -50,7 +39,12 @@ export default function PlayerLayout({ children }: { children: React.ReactNode }
       setUser(u);
       setLoading(false);
     });
-  }, [router, pathname]);
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 未读消息轮询
   useEffect(() => {
@@ -67,58 +61,9 @@ export default function PlayerLayout({ children }: { children: React.ReactNode }
     return () => clearInterval(timer);
   }, [user]);
 
-  // 状态：进入自动上线 + 心跳保活
-  useEffect(() => {
-    if (!user) return;
-
-    async function init() {
-      const s = await fetchMyStatus();
-      setStatus(s);
-
-      // 进入陪玩端时，如果当前是 offline，自动上线（busy 不动）
-      if (s === 'offline') {
-        const r = await toggleMyStatus();
-        if (r.ok && r.status) {
-          setStatus(r.status);
-        }
-      }
-    }
-
-    init();
-
-    // 心跳：每 60 秒一次；同时刷新一下状态
-    const timer = setInterval(async () => {
-      await sendHeartbeat();
-      const s = await fetchMyStatus();
-      setStatus(s);
-    }, 60 * 1000);
-
-    // 离开页面时（切 tab / 关页面）发送一次心跳，让状态保留
-    function handleVisibility() {
-      if (document.visibilityState === 'visible') {
-        // 回到页面：立刻心跳一下
-        sendHeartbeat();
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibility);
-
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, [user]);
-
-  async function handleToggle() {
-    if (toggling) return;
-    setToggling(true);
-    const r = await toggleMyStatus();
-    setToggling(false);
-    if (r.ok && r.status) {
-      setStatus(r.status);
-    } else if (r.error) {
-      alert(r.error);
-    }
+  async function handleLogout() {
+    await logout();
+    router.push('/');
   }
 
   if (loading || !user) {
@@ -156,31 +101,7 @@ export default function PlayerLayout({ children }: { children: React.ReactNode }
 
         <div className="player-user">
           <div className="player-user-name">{user.nickname}</div>
-
-          <button
-            className={'player-status-toggle status-' + status}
-            onClick={handleToggle}
-            disabled={toggling || status === 'busy'}
-          >
-            {toggling ? '切换中…' : STATUS_TEXT[status]}
-          </button>
-
-          {status !== 'busy' && (
-            <div className="player-status-hint">
-              点击切换在线 / 离线
-            </div>
-          )}
-          {status === 'busy' && (
-            <div className="player-status-hint">有进行中的订单</div>
-          )}
-
-          <button
-            className="player-logout"
-            onClick={async () => {
-              await logout();
-              router.push('/');
-            }}
-          >
+          <button className="player-logout" onClick={handleLogout}>
             退出登录
           </button>
         </div>

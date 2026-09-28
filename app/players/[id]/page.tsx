@@ -180,10 +180,6 @@ export default async function PlayerDetailPage({ params }: Props) {
             )}
           </div>
 
-          <div className="detail-sub" style={{ marginTop: '0.6rem' }}>
-            {statusText}
-          </div>
-
           <div className="stat-grid">
             <div className="stat-box" style={{ background: '#FFF3E6' }}>
               <div className="stat-num" style={{ color: '#F97316' }}>

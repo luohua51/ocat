@@ -139,10 +139,6 @@ export default function HomePage() {
 
                 <div className="meta" style={{ marginTop: '0.4rem' }}>
                   {p.games.length > 0 ? p.games.join(' · ') : '暂无游戏'}
-                  <br />
-                  {p.status === 'online' && '🟢 在线'}
-                  {p.status === 'busy' && '🟠 忙碌'}
-                  {p.status === 'offline' && '⚪ 离线'}
                 </div>
 
                 <div className="price">
