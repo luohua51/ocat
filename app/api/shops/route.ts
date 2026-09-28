@@ -12,7 +12,6 @@ export async function GET() {
   const me = await getSessionUser();
   if (!me) return Response.json({ ok: false, error: '未登录' }, { status: 401 });
 
-  // 超管看全部；店长只看自己的
   let q = supabaseAdmin.from('shops').select('*').order('id', { ascending: true });
 
   if (me.role === 'shop_admin') {
@@ -24,8 +23,8 @@ export async function GET() {
   const { data, error } = await q;
   if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
 
-  // 附带每个店的陪玩数、店长
   const shops = data || [];
+
   const enriched = await Promise.all(
     shops.map(async (s) => {
       const { count: playerCount } = await supabaseAdmin!
@@ -34,12 +33,16 @@ export async function GET() {
         .eq('role', 'player')
         .eq('shop_id', s.id);
 
-      const { data: admin } = await supabaseAdmin!
+      // 改成取一条（避免多条时 maybeSingle 报错）
+      const { data: admins } = await supabaseAdmin!
         .from('users')
         .select('id, username, nickname')
         .eq('role', 'shop_admin')
         .eq('shop_id', s.id)
-        .maybeSingle();
+        .order('id', { ascending: true })
+        .limit(1);
+
+      const admin = admins && admins.length > 0 ? admins[0] : null;
 
       return { ...s, playerCount: playerCount || 0, admin };
     })
@@ -69,7 +72,6 @@ export async function POST(req: Request) {
   if (!name) return Response.json({ ok: false, error: '请输入店铺名' }, { status: 400 });
   if (!adminAccount) return Response.json({ ok: false, error: '请输入店长账号' }, { status: 400 });
 
-  // 检查店铺名
   const { data: existingShop } = await supabaseAdmin
     .from('shops')
     .select('id')
@@ -79,7 +81,6 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, error: '店铺名已存在' }, { status: 400 });
   }
 
-  // 检查账号
   const { data: existingUser } = await supabaseAdmin
     .from('users')
     .select('id')
@@ -89,7 +90,6 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, error: '店长账号已被使用' }, { status: 400 });
   }
 
-  // 创建店铺
   const { data: shop, error: shopErr } = await supabaseAdmin
     .from('shops')
     .insert({ name, description, status: 'active' })
@@ -100,7 +100,6 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, error: shopErr?.message || '创建店铺失败' }, { status: 500 });
   }
 
-  // 创建店长账号（bcrypt 通过 SQL 生成哈希）
   const bcrypt = require('bcryptjs');
   const hash = bcrypt.hashSync('123456', 10);
 
@@ -115,7 +114,6 @@ export async function POST(req: Request) {
   });
 
   if (userErr) {
-    // 回滚店铺
     await supabaseAdmin.from('shops').delete().eq('id', shop.id);
     return Response.json({ ok: false, error: userErr.message }, { status: 500 });
   }
