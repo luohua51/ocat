@@ -2,24 +2,24 @@ import { supabase } from './supabase';
 
 export type PlayerIdentity = {
   type: 'shop' | 'freelance';
-  shopName: string; // 散陪时为 '散陪'
+  shopName: string;
   tier: string;
-  label: string;    // 展示用，如 "橙猫猫.金牌" 或 "散陪.技术"
+  label: string;
 };
 
 export type PlayerDisplay = {
   id: number;
   name: string;
   avatar: string;
-  tier: string;         // 主档位（用于排序和主标签）
+  tier: string;
   games: string[];
   price: number;
   signature: string;
   weeklyOrders: number;
   rating: number;
-  shopName: string;     // 主身份店铺名（空 = 纯散陪）
+  shopName: string;
   status: string;
-  identities: PlayerIdentity[]; // 所有身份
+  identities: PlayerIdentity[];
 };
 
 export async function fetchPlayers(): Promise<PlayerDisplay[]> {
@@ -53,9 +53,7 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
       .in('player_id', ids)
       .eq('is_active', true);
 
-    const gameIds = [
-      ...new Set((capabilities || []).map((c: any) => c.game_id)),
-    ];
+    const gameIds = [...new Set((capabilities || []).map((c: any) => c.game_id))];
 
     const { data: gamesData } = await supabase
       .from('games')
@@ -77,38 +75,18 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
 
     const shopMap = new Map((shops || []).map((s) => [s.id, s.name]));
 
-    // 6. 陪玩 user 表关联
+    // 6. 陪玩 user 表关联（获取 shop_id 和 user.id）
     const { data: playerUsers } = await supabase
       .from('users')
       .select('id, player_id, shop_id')
       .in('player_id', ids)
       .eq('role', 'player');
 
-    const userPlayerMap = new Map((playerUsers || []).map((u: any) => [u.player_id, u]));
-    const userShopMap = new Map(
-      (playerUsers || []).map((u: any) => [u.player_id, u.shop_id])
-    );
-
-    // 7. 店铺认证（player_shops）
+    // 7. player_shops 认证表（如果存在更细的档位）
     const { data: playerShops } = await supabase
       .from('player_shops')
       .select('player_user_id, shop_id, tier')
       .eq('is_active', true);
-
-    // 按 player_id 分组认证
-    const certsByPlayerId = new Map<number, { shopId: number; tier: string }[]>();
-    (playerShops || []).forEach((ps: any) => {
-      // 通过 user.id 找 player_id
-      const user = (playerUsers || []).find((u: any) => u.id === ps.player_user_id);
-      if (!user) return;
-      if (!certsByPlayerId.has(user.player_id)) {
-        certsByPlayerId.set(user.player_id, []);
-      }
-      certsByPlayerId.get(user.player_id)!.push({
-        shopId: ps.shop_id,
-        tier: ps.tier,
-      });
-    });
 
     // 8. 组装
     return players.map((p) => {
@@ -130,26 +108,43 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
       // 身份
       const identities: PlayerIdentity[] = [];
 
-      // 店铺认证
-      const certs = certsByPlayerId.get(p.id) || [];
-      certs.forEach((c) => {
-        const shopName = shopMap.get(c.shopId);
-        if (shopName) {
-          identities.push({
-            type: 'shop',
-            shopName,
-            tier: c.tier,
-            label: `${shopName}.${c.tier}`,
-          });
-        }
-      });
+      const userInfo = (playerUsers || []).find((u: any) => u.player_id === p.id);
 
-      // 散陪身份（有散陪价就算）
-      const hasFreelance = (prices || []).some(
-        (x: any) => x.player_id === p.id && x.tier
-      );
+      // 店铺认证：优先用 player_shops 里的，其次用 user.shop_id 兜底
+      if (userInfo) {
+        const certs = (playerShops || []).filter(
+          (ps: any) => ps.player_user_id === userInfo.id
+        );
+
+        if (certs.length > 0) {
+          certs.forEach((c: any) => {
+            const shopName = shopMap.get(c.shop_id);
+            if (shopName) {
+              identities.push({
+                type: 'shop',
+                shopName,
+                tier: c.tier,
+                label: `${shopName}.${c.tier}`,
+              });
+            }
+          });
+        } else if (userInfo.shop_id) {
+          // 没认证记录，但有归属店铺 → 显示为店铺陪玩，档位用 players.tier
+          const shopName = shopMap.get(userInfo.shop_id);
+          if (shopName) {
+            identities.push({
+              type: 'shop',
+              shopName,
+              tier: p.tier,
+              label: `${shopName}.${p.tier}`,
+            });
+          }
+        }
+      }
+
+      // 散陪身份：有散陪价就算
+      const hasFreelance = (prices || []).some((x: any) => x.player_id === p.id);
       if (hasFreelance) {
-        // 取该陪玩散陪的主要档位（取第一个）
         const freelanceTier =
           (prices || []).find((x: any) => x.player_id === p.id)?.tier || p.tier;
         identities.push({
@@ -161,9 +156,9 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
       }
 
       // 主档位和主店铺
-      const mainCert = certs[0];
-      const mainTier = mainCert?.tier || p.tier;
-      const mainShopName = mainCert ? shopMap.get(mainCert.shopId) || '' : '';
+      const mainIdentity = identities[0];
+      const mainTier = mainIdentity?.tier || p.tier;
+      const mainShopName = mainIdentity?.shopName || '';
 
       return {
         id: p.id,
