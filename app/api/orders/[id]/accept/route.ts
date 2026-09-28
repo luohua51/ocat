@@ -55,7 +55,24 @@ export async function POST(
   const platformFee = baseAmount * 0.02;
   const playerIncome = baseAmount - platformFee;
 
-  // 原子操作：只有 status='pooling' 且 player_id 为空时才能成功
+  // 检查并扣会员余额
+  const { data: wallet } = await supabaseAdmin
+    .from('wallets')
+    .select('balance')
+    .eq('user_id', order.member_id)
+    .maybeSingle();
+
+  const currentBalance = wallet ? Number(wallet.balance) : 0;
+  if (currentBalance < baseAmount) {
+    return Response.json(
+      { ok: false, error: `老板余额不足（当前 ¥${currentBalance.toFixed(2)}，需 ¥${baseAmount.toFixed(2)}），无法接单` },
+      { status: 400 }
+    );
+  }
+
+  const newBalance = currentBalance - baseAmount;
+
+  // 原子更新订单
   const { data: updated, error } = await supabaseAdmin
     .from('orders')
     .update({
@@ -68,6 +85,7 @@ export async function POST(
       player_income: playerIncome,
       status: 'locked',
       locked_at: new Date().toISOString(),
+      paid_at: new Date().toISOString(),
     })
     .eq('id', orderId)
     .eq('status', 'pooling')
@@ -81,6 +99,21 @@ export async function POST(
       { status: 409 }
     );
   }
+
+  // 扣款 + 记流水
+  await supabaseAdmin
+    .from('wallets')
+    .update({ balance: newBalance, updated_at: new Date().toISOString() })
+    .eq('user_id', order.member_id);
+
+  await supabaseAdmin.from('wallet_transactions').insert({
+    user_id: order.member_id,
+    type: 'consume',
+    amount: baseAmount,
+    balance_after: newBalance,
+    order_id: orderId,
+    description: `订单 ${order.order_no} 已接单扣款`,
+  });
 
   return Response.json({ ok: true, order: updated });
 }

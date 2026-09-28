@@ -36,6 +36,44 @@ export async function POST(
     );
   }
 
+  // ============================================================
+  // 退款给会员（如果已付款）
+  // ============================================================
+  const refundAmount = Number(order.final_amount) || 0;
+  if (refundAmount > 0) {
+    const { data: wallet } = await supabaseAdmin
+      .from('wallets')
+      .select('balance')
+      .eq('user_id', order.member_id)
+      .maybeSingle();
+
+    const currentBalance = wallet ? Number(wallet.balance) : 0;
+    const newBalance = currentBalance + refundAmount;
+
+    if (!wallet) {
+      await supabaseAdmin
+        .from('wallets')
+        .insert({ user_id: order.member_id, balance: refundAmount });
+    } else {
+      await supabaseAdmin
+        .from('wallets')
+        .update({ balance: newBalance, updated_at: new Date().toISOString() })
+        .eq('user_id', order.member_id);
+    }
+
+    await supabaseAdmin.from('wallet_transactions').insert({
+      user_id: order.member_id,
+      type: 'refund',
+      amount: refundAmount,
+      balance_after: newBalance,
+      order_id: id,
+      description: `订单 ${order.order_no} 撤销退款`,
+    });
+  }
+
+  // ============================================================
+  // 更新订单状态
+  // ============================================================
   const { data: updated, error } = await supabaseAdmin
     .from('orders')
     .update({

@@ -171,3 +171,40 @@ export async function finishOrder(orderId: number) {
 export async function confirmOrder(orderId: number) {
   return postAction(orderId, 'confirm');
 }
+
+// ============================================================
+// 钱包
+// ============================================================
+export type WalletInfo = {
+  balance: number;
+  totalIncome: number;
+  totalWithdrawn: number;
+};
+
+export type WalletTransaction = {
+  id: number;
+  type: string;
+  amount: number;
+  balance_after: number;
+  order_id: number | null;
+  description: string | null;
+  created_at: string;
+};
+
+export async function fetchMyWallet(): Promise<WalletInfo> {
+  const res = await fetch('/api/wallet', { cache: 'no-store' });
+  const data = await res.json();
+  if (!data.ok) return { balance: 0, totalIncome: 0, totalWithdrawn: 0 };
+  return {
+    balance: data.balance,
+    totalIncome: data.totalIncome,
+    totalWithdrawn: data.totalWithdrawn,
+  };
+}
+
+export async function fetchMyTransactions(): Promise<WalletTransaction[]> {
+  const res = await fetch('/api/wallet/transactions', { cache: 'no-store' });
+  const data = await res.json();
+  if (!data.ok) return [];
+  return data.transactions;
+}

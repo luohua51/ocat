@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     .maybeSingle();
   if (!game) return Response.json({ ok: false, error: '游戏不存在' }, { status: 404 });
 
-  // 价格计算
+    // 价格计算
   let unitPrice = 0;
   let shopId: number | null = null;
   let shopFee = 0;
@@ -112,12 +112,42 @@ export async function POST(req: Request) {
     finalAmount = baseAmount;
     playerIncome = baseAmount - platformFee;
   } else {
-    // 不指定：价格待定，接单后由陪玩报价
     unitPrice = 0;
     baseAmount = 0;
     platformFee = 0;
     finalAmount = 0;
     playerIncome = 0;
+  }
+
+  // 指定单：扣会员余额
+  if (isDesignated && finalAmount > 0) {
+    const { data: wallet } = await supabaseAdmin
+      .from('wallets')
+      .select('balance')
+      .eq('user_id', me.id)
+      .maybeSingle();
+
+    const currentBalance = wallet ? Number(wallet.balance) : 0;
+    if (currentBalance < finalAmount) {
+      return Response.json(
+        { ok: false, error: `余额不足（当前 ¥${currentBalance.toFixed(2)}，需要 ¥${finalAmount.toFixed(2)}）` },
+        { status: 400 }
+      );
+    }
+
+    const newBalance = currentBalance - finalAmount;
+    await supabaseAdmin
+      .from('wallets')
+      .update({ balance: newBalance, updated_at: new Date().toISOString() })
+      .eq('user_id', me.id);
+
+    await supabaseAdmin.from('wallet_transactions').insert({
+      user_id: me.id,
+      type: 'consume',
+      amount: finalAmount,
+      balance_after: newBalance,
+      description: `下单 - ${game.name} · ${tier}`,
+    });
   }
 
   const orderNo = 'OC' + Date.now();

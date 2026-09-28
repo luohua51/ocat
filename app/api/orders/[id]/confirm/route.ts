@@ -32,12 +32,60 @@ export async function POST(
     return Response.json({ ok: false, error: '订单状态不对' }, { status: 400 });
   }
 
+    // 给陪玩加钱
+  const playerIncome = Number(order.player_income) || 0;
+  if (playerIncome > 0 && order.player_id) {
+    // 查陪玩对应的 user_id
+    const { data: playerUser } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('player_id', order.player_id)
+      .maybeSingle();
+
+    if (playerUser) {
+      const { data: playerWallet } = await supabaseAdmin
+        .from('wallets')
+        .select('balance, total_income')
+        .eq('user_id', playerUser.id)
+        .maybeSingle();
+
+      const currentBalance = playerWallet ? Number(playerWallet.balance) : 0;
+      const currentIncome = playerWallet ? Number(playerWallet.total_income) : 0;
+      const newBalance = currentBalance + playerIncome;
+      const newIncome = currentIncome + playerIncome;
+
+      if (!playerWallet) {
+        await supabaseAdmin.from('wallets').insert({
+          user_id: playerUser.id,
+          balance: playerIncome,
+          total_income: playerIncome,
+        });
+      } else {
+        await supabaseAdmin
+          .from('wallets')
+          .update({
+            balance: newBalance,
+            total_income: newIncome,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', playerUser.id);
+      }
+
+      await supabaseAdmin.from('wallet_transactions').insert({
+        user_id: playerUser.id,
+        type: 'income',
+        amount: playerIncome,
+        balance_after: newBalance,
+        order_id: id,
+        description: `订单 ${order.order_no} 完成，收入 ¥${playerIncome.toFixed(2)}`,
+      });
+    }
+  }
+
   // 更新订单状态
   const { data: updated, error } = await supabaseAdmin
     .from('orders')
-    .update({
-      status: 'completed',
-    })
+    .update({ status: 'completed' })
     .eq('id', id)
     .select('*')
     .maybeSingle();
