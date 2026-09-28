@@ -265,3 +265,43 @@ export async function fetchPlayerReviews(
     average: data.average || 0,
   };
 }
+
+// ============================================================
+// 在线状态
+// ============================================================
+export type PlayerStatus = 'online' | 'offline' | 'busy';
+
+export async function fetchMyStatus(): Promise<PlayerStatus> {
+  const res = await fetch('/api/player/status', { cache: 'no-store' });
+  const data = await res.json();
+  if (!data.ok) return 'offline';
+  return data.status as PlayerStatus;
+}
+
+export async function toggleMyStatus(): Promise<{
+  ok: boolean;
+  status?: PlayerStatus;
+  error?: string;
+}> {
+  const res = await fetch('/api/player/status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'toggle' }),
+  });
+  const data = await res.json();
+  return data.ok
+    ? { ok: true, status: data.status }
+    : { ok: false, error: data.error };
+}
+
+export async function sendHeartbeat(): Promise<void> {
+  try {
+    await fetch('/api/player/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'heartbeat' }),
+    });
+  } catch {
+    // 静默失败
+  }
+}

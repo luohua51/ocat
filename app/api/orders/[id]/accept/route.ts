@@ -18,7 +18,6 @@ export async function POST(
   const orderId = Number(params.id);
   if (!orderId) return Response.json({ ok: false, error: '参数错误' }, { status: 400 });
 
-  // 查订单
   const { data: order } = await supabaseAdmin
     .from('orders')
     .select('*')
@@ -33,7 +32,6 @@ export async function POST(
     return Response.json({ ok: false, error: '该订单已被接走' }, { status: 400 });
   }
 
-  // 查该陪玩的价格（散陪价）
   const { data: price } = await supabaseAdmin
     .from('player_prices')
     .select('price_per_hour')
@@ -55,7 +53,6 @@ export async function POST(
   const platformFee = baseAmount * 0.02;
   const playerIncome = baseAmount - platformFee;
 
-  // 检查并扣会员余额
   const { data: wallet } = await supabaseAdmin
     .from('wallets')
     .select('balance')
@@ -65,14 +62,13 @@ export async function POST(
   const currentBalance = wallet ? Number(wallet.balance) : 0;
   if (currentBalance < baseAmount) {
     return Response.json(
-      { ok: false, error: `老板余额不足（当前 ¥${currentBalance.toFixed(2)}，需 ¥${baseAmount.toFixed(2)}），无法接单` },
+      { ok: false, error: `老板余额不足（当前 ¥${currentBalance.toFixed(2)}，需 ¥${baseAmount.toFixed(2)}）` },
       { status: 400 }
     );
   }
 
   const newBalance = currentBalance - baseAmount;
 
-  // 原子更新订单
   const { data: updated, error } = await supabaseAdmin
     .from('orders')
     .update({
@@ -114,6 +110,12 @@ export async function POST(
     order_id: orderId,
     description: `订单 ${order.order_no} 已接单扣款`,
   });
+
+  // 陪玩状态 → busy
+  await supabaseAdmin
+    .from('players')
+    .update({ status: 'busy', last_active_at: new Date().toISOString() })
+    .eq('id', me.playerId);
 
   return Response.json({ ok: true, order: updated });
 }

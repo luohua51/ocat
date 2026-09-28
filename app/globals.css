@@ -4055,3 +4055,58 @@ button {
 .shop-price-group .shop-price-item:last-child {
   margin-bottom: 0;
 }
+
+/* ============================================================
+   陪玩状态切换
+   ============================================================ */
+.player-status-toggle {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  margin-bottom: 0.4rem;
+  border: 1px solid transparent;
+}
+
+.player-status-toggle.status-online {
+  background: rgba(52, 211, 153, 0.15);
+  border-color: rgba(52, 211, 153, 0.4);
+  color: #34d399;
+}
+
+.player-status-toggle.status-online:hover:not(:disabled) {
+  background: rgba(52, 211, 153, 0.25);
+}
+
+.player-status-toggle.status-offline {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.player-status-toggle.status-offline:hover:not(:disabled) {
+  border-color: #FF7A00;
+  color: #FF7A00;
+}
+
+.player-status-toggle.status-busy {
+  background: rgba(255, 122, 0, 0.15);
+  border-color: rgba(255, 122, 0, 0.4);
+  color: #FF7A00;
+  cursor: not-allowed;
+}
+
+.player-status-toggle:disabled {
+  opacity: 0.7;
+}
+
+.player-status-hint {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.35);
+  text-align: center;
+  margin-bottom: 0.6rem;
+}

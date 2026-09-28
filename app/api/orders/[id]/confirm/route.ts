@@ -32,10 +32,8 @@ export async function POST(
     return Response.json({ ok: false, error: '订单状态不对' }, { status: 400 });
   }
 
-    // 给陪玩加钱
   const playerIncome = Number(order.player_income) || 0;
   if (playerIncome > 0 && order.player_id) {
-    // 查陪玩对应的 user_id
     const { data: playerUser } = await supabaseAdmin
       .from('users')
       .select('id')
@@ -82,7 +80,6 @@ export async function POST(
     }
   }
 
-  // 更新订单状态
   const { data: updated, error } = await supabaseAdmin
     .from('orders')
     .update({ status: 'completed' })
@@ -92,6 +89,14 @@ export async function POST(
 
   if (error || !updated) {
     return Response.json({ ok: false, error: error?.message || '操作失败' }, { status: 500 });
+  }
+
+  // 陪玩变回 online
+  if (order.player_id) {
+    await supabaseAdmin
+      .from('players')
+      .update({ status: 'online', last_active_at: new Date().toISOString() })
+      .eq('id', order.player_id);
   }
 
   return Response.json({ ok: true, order: updated });

@@ -5,6 +5,12 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { fetchCurrentUser, logout, type User } from '@/lib/auth';
 import { fetchConversations } from '@/lib/chat';
+import {
+  fetchMyStatus,
+  toggleMyStatus,
+  sendHeartbeat,
+  type PlayerStatus,
+} from '@/lib/player';
 
 const MENU = [
   { href: '/player', label: '工作台', icon: '🏠' },
@@ -16,12 +22,20 @@ const MENU = [
   { href: '/player/profile', label: '个人资料', icon: '👤' },
 ];
 
+const STATUS_TEXT: Record<PlayerStatus, string> = {
+  online: '🟢 接单中',
+  offline: '⚪ 已离线',
+  busy: '🟠 服务中',
+};
+
 export default function PlayerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [unread, setUnread] = useState(0);
+  const [status, setStatus] = useState<PlayerStatus>('offline');
+  const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
     fetchCurrentUser().then((u) => {
@@ -38,6 +52,7 @@ export default function PlayerLayout({ children }: { children: React.ReactNode }
     });
   }, [router, pathname]);
 
+  // 未读消息轮询
   useEffect(() => {
     if (!user) return;
 
@@ -51,6 +66,37 @@ export default function PlayerLayout({ children }: { children: React.ReactNode }
     const timer = setInterval(loadUnread, 5000);
     return () => clearInterval(timer);
   }, [user]);
+
+  // 状态心跳（每 60 秒）
+  useEffect(() => {
+    if (!user) return;
+
+    async function checkStatus() {
+      const s = await fetchMyStatus();
+      setStatus(s);
+    }
+
+    checkStatus();
+    const timer = setInterval(async () => {
+      await sendHeartbeat();
+      await checkStatus();
+    }, 60 * 1000);
+
+    // 页面关闭时，主动上报一次心跳（不是真的关闭，浏览器无法保证）
+    return () => clearInterval(timer);
+  }, [user]);
+
+  async function handleToggle() {
+    if (toggling) return;
+    setToggling(true);
+    const r = await toggleMyStatus();
+    setToggling(false);
+    if (r.ok && r.status) {
+      setStatus(r.status);
+    } else if (r.error) {
+      alert(r.error);
+    }
+  }
 
   if (loading || !user) {
     return <div style={{ color: '#fff', padding: '2rem', textAlign: 'center' }}>加载中…</div>;
@@ -84,9 +130,29 @@ export default function PlayerLayout({ children }: { children: React.ReactNode }
             );
           })}
         </nav>
+
         <div className="player-user">
           <div className="player-user-name">{user.nickname}</div>
-          <div className="player-user-status">🟢 在线接单中</div>
+
+          <button
+            className={
+              'player-status-toggle status-' + status
+            }
+            onClick={handleToggle}
+            disabled={toggling || status === 'busy'}
+          >
+            {toggling ? '切换中…' : STATUS_TEXT[status]}
+          </button>
+
+          {status !== 'busy' && (
+            <div className="player-status-hint">
+              点击切换在线 / 离线
+            </div>
+          )}
+          {status === 'busy' && (
+            <div className="player-status-hint">有进行中的订单</div>
+          )}
+
           <button
             className="player-logout"
             onClick={async () => {
