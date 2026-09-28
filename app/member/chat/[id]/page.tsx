@@ -34,12 +34,15 @@ export default function MemberChatRoomPage() {
         return;
       }
       setConversation(data.conversation);
-      setMessages(data.messages);
+
+      // 按 id 去重
+      const unique = Array.from(
+        new Map(data.messages.map((m) => [m.id, m])).values()
+      );
+      setMessages(unique);
       setCanSend(data.canSend);
       lastIdRef.current =
-        data.messages.length > 0
-          ? data.messages[data.messages.length - 1].id
-          : 0;
+        unique.length > 0 ? unique[unique.length - 1].id : 0;
       setLoading(false);
     }
     load();
@@ -51,7 +54,11 @@ export default function MemberChatRoomPage() {
     const timer = setInterval(async () => {
       const data = await fetchNewMessages(conversationId, lastIdRef.current);
       if (data.messages.length > 0) {
-        setMessages((prev) => [...prev, ...data.messages]);
+        setMessages((prev) => {
+          const existing = new Set(prev.map((m) => m.id));
+          const fresh = data.messages.filter((m) => !existing.has(m.id));
+          return [...prev, ...fresh];
+        });
         lastIdRef.current = data.messages[data.messages.length - 1].id;
       }
       setCanSend(data.canSend);
@@ -85,7 +92,10 @@ export default function MemberChatRoomPage() {
     }
 
     if (r.message) {
-      setMessages((prev) => [...prev, r.message!]);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === r.message!.id)) return prev;
+        return [...prev, r.message!];
+      });
       lastIdRef.current = r.message.id;
     }
   }

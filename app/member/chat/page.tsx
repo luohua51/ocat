@@ -8,11 +8,18 @@ export default function MemberChatPage() {
   const [list, setList] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // 加载会话列表
+  async function load() {
+    const data = await fetchConversations();
+    setList(data);
+    setLoading(false);
+  }
+
   useEffect(() => {
-    fetchConversations().then((data) => {
-      setList(data);
-      setLoading(false);
-    });
+    load();
+    // 每 5 秒轮询一次，自动刷新红点
+    const timer = setInterval(load, 5000);
+    return () => clearInterval(timer);
   }, []);
 
   function formatTime(t: string | null) {
@@ -60,9 +67,11 @@ export default function MemberChatPage() {
                 <div className="member-chat-time">
                   {formatTime(c.last_message_at)}
                 </div>
-                {c.unreadCount && c.unreadCount > 0 ? (
-                  <div className="member-chat-badge">{c.unreadCount}</div>
-                ) : null}
+                {c.unreadCount !== undefined && c.unreadCount > 0 && (
+                  <div className="member-chat-badge">
+                    {c.unreadCount > 99 ? '99+' : c.unreadCount}
+                  </div>
+                )}
               </div>
             </Link>
           ))}

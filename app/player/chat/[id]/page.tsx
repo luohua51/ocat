@@ -25,6 +25,7 @@ export default function PlayerChatRoomPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastIdRef = useRef<number>(0);
 
+  // 初始加载
   useEffect(() => {
     async function load() {
       const data = await fetchConversation(conversationId);
@@ -33,23 +34,30 @@ export default function PlayerChatRoomPage() {
         return;
       }
       setConversation(data.conversation);
-      setMessages(data.messages);
+
+      const unique = Array.from(
+        new Map(data.messages.map((m) => [m.id, m])).values()
+      );
+      setMessages(unique);
       setCanSend(data.canSend);
       lastIdRef.current =
-        data.messages.length > 0
-          ? data.messages[data.messages.length - 1].id
-          : 0;
+        unique.length > 0 ? unique[unique.length - 1].id : 0;
       setLoading(false);
     }
     load();
   }, [conversationId]);
 
+  // 轮询
   useEffect(() => {
     if (!conversationId) return;
     const timer = setInterval(async () => {
       const data = await fetchNewMessages(conversationId, lastIdRef.current);
       if (data.messages.length > 0) {
-        setMessages((prev) => [...prev, ...data.messages]);
+        setMessages((prev) => {
+          const existing = new Set(prev.map((m) => m.id));
+          const fresh = data.messages.filter((m) => !existing.has(m.id));
+          return [...prev, ...fresh];
+        });
         lastIdRef.current = data.messages[data.messages.length - 1].id;
       }
       setCanSend(data.canSend);
@@ -57,6 +65,7 @@ export default function PlayerChatRoomPage() {
     return () => clearInterval(timer);
   }, [conversationId]);
 
+  // 自动滚到底
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -78,7 +87,10 @@ export default function PlayerChatRoomPage() {
     }
 
     if (r.message) {
-      setMessages((prev) => [...prev, r.message!]);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === r.message!.id)) return prev;
+        return [...prev, r.message!];
+      });
       lastIdRef.current = r.message.id;
     }
   }
