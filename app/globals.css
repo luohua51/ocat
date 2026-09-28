@@ -3986,3 +3986,37 @@ button {
   background: #fff;
   color: #FF7A00;
 }
+
+/* ============================================================
+   管理端：Tabs
+   ============================================================ */
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.2rem;
+}
+
+.admin-tab {
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.admin-tab:hover {
+  color: #FF7A00;
+  border-color: #FF7A00;
+}
+
+.admin-tab.active {
+  background: #FF7A00;
+  border-color: #FF7A00;
+  color: #fff;
+  font-weight: 700;
+}
