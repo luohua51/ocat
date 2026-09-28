@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fetchCurrentUser, logout, type User } from '@/lib/auth';
 
 const MENU = [
@@ -12,50 +12,37 @@ const MENU = [
   { href: '/shop/certifications', label: '限定认证', icon: '🏆' },
 ];
 
-const CACHE_KEY = 'ocat_user_shop';
-
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const verifiedRef = useRef(false);
 
   useEffect(() => {
+    if (verifiedRef.current) return;
+    verifiedRef.current = true;
+
     let cancelled = false;
 
-    // 先用缓存
-    try {
-      const cached = sessionStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const u = JSON.parse(cached) as User;
-        if (u.role === 'shop_admin' || u.role === 'super_admin') {
-          setUser(u);
-          setLoading(false);
-        }
-      }
-    } catch {}
-
-    async function verify() {
+    async function init() {
       const u = await fetchCurrentUser();
       if (cancelled) return;
 
       if (!u) {
-        sessionStorage.removeItem(CACHE_KEY);
-        router.replace('/login?redirect=' + pathname);
+        router.replace('/login');
         return;
       }
-
       if (u.role !== 'shop_admin' && u.role !== 'super_admin') {
         router.replace('/login');
         return;
       }
 
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify(u));
       setUser(u);
       setLoading(false);
     }
 
-    verify();
+    init();
     return () => {
       cancelled = true;
     };
@@ -63,7 +50,6 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   }, []);
 
   async function handleLogout() {
-    sessionStorage.removeItem(CACHE_KEY);
     await logout();
     router.push('/');
   }

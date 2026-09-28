@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fetchCurrentUser, logout, type User } from '@/lib/auth';
 
 const MENU = [
@@ -17,61 +17,44 @@ const MENU = [
   { href: '/admin/settings', label: '平台设置', icon: '⚙️' },
 ];
 
-const CACHE_KEY = 'ocat_user_admin';
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const verifiedRef = useRef(false);
 
   useEffect(() => {
+    if (verifiedRef.current) return;
+    verifiedRef.current = true;
+
     let cancelled = false;
 
-    // 1. 先用缓存渲染
-    try {
-      const cached = sessionStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const u = JSON.parse(cached) as User;
-        if (u.role === 'super_admin' || u.role === 'admin') {
-          setUser(u);
-          setLoading(false);
-        }
-      }
-    } catch {}
-
-    // 2. 再请求真实用户（异步校验）
-    async function verify() {
+    async function init() {
       const u = await fetchCurrentUser();
       if (cancelled) return;
 
       if (!u) {
-        // 只有明确未登录时才跳
-        sessionStorage.removeItem(CACHE_KEY);
-        router.replace('/login?redirect=' + pathname);
+        router.replace('/login');
         return;
       }
-
       if (u.role !== 'super_admin' && u.role !== 'admin') {
         router.replace('/login');
         return;
       }
 
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify(u));
       setUser(u);
       setLoading(false);
     }
 
-    verify();
+    init();
     return () => {
       cancelled = true;
     };
-    // 只在首次挂载时校验，切页面不再重复校验
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleLogout() {
-    sessionStorage.removeItem(CACHE_KEY);
     await logout();
     router.push('/');
   }
