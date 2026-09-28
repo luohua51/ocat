@@ -4020,3 +4020,38 @@ button {
   color: #fff;
   font-weight: 700;
 }
+
+/* ============================================================
+   店铺价格分组
+   ============================================================ */
+.shop-price-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.shop-price-group {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.9rem;
+  padding: 1rem 1.2rem;
+}
+
+.shop-price-group-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #FF7A00;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px dashed rgba(255, 122, 0, 0.25);
+}
+
+.shop-price-group .shop-price-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 0.5rem;
+}
+
+.shop-price-group .shop-price-item:last-child {
+  margin-bottom: 0;
+}
