@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { fetchHallOrders, acceptOrder, type Order } from '@/lib/order';
+import { getOrCreateConversation } from '@/lib/chat';
 
 export default function PlayerHallPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState<number | null>(null);
+  const [chatting, setChatting] = useState<number | null>(null);
 
   async function load() {
     const list = await fetchHallOrders();
@@ -20,7 +24,11 @@ export default function PlayerHallPage() {
   }, []);
 
   async function handleAccept(order: Order) {
-    if (!confirm(`确认接单？\n${order.game_name} · ${order.tier} · ${order.duration_hours}h\n接单后请尽快联系老板`)) {
+    if (
+      !confirm(
+        `确认接单？\n${order.game_name} · ${order.tier} · ${order.duration_hours}h\n接单后请尽快联系老板`
+      )
+    ) {
       return;
     }
     setAccepting(order.id);
@@ -29,13 +37,25 @@ export default function PlayerHallPage() {
 
     if (!result.ok) {
       alert(result.error || '接单失败');
-      // 刷新列表（可能被抢走了）
       load();
       return;
     }
 
     alert('接单成功！');
-    window.location.href = '/player/orders/' + order.id;
+    router.push('/player/orders/' + order.id);
+  }
+
+  async function handleChat(order: Order) {
+    setChatting(order.id);
+    const result = await getOrCreateConversation({ orderId: order.id });
+    setChatting(null);
+
+    if (!result.ok || !result.conversation) {
+      alert(result.error || '无法打开会话');
+      return;
+    }
+
+    router.push('/player/chat/' + result.conversation.id);
   }
 
   return (
@@ -60,7 +80,10 @@ export default function PlayerHallPage() {
                   <span className="player-hall-game">{o.game_name}</span>
                   <span className="player-hall-tier">{o.tier}</span>
                 </div>
-                <div className="player-hall-amount" style={{ color: '#818cf8', fontSize: '0.95rem' }}>
+                <div
+                  className="player-hall-amount"
+                  style={{ color: '#818cf8', fontSize: '0.95rem' }}
+                >
                   价格待定
                 </div>
               </div>
@@ -69,7 +92,9 @@ export default function PlayerHallPage() {
                 <div>老板：{o.member_name}</div>
                 <div>段位：{o.boss_rank || '未填'}</div>
                 <div>时长：{o.duration_hours} 小时</div>
-                <div>身份：{o.identity_type === 'freelance' ? '散陪单' : '店铺单'}</div>
+                <div>
+                  身份：{o.identity_type === 'freelance' ? '散陪单' : '店铺单'}
+                </div>
               </div>
 
               {o.remark && (
@@ -87,14 +112,41 @@ export default function PlayerHallPage() {
                 </div>
               )}
 
-              <div className="player-hall-actions">
-                <Link href={`/player/orders/${o.id}`} className="player-btn-ghost" style={{ textAlign: 'center', textDecoration: 'none' }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 1fr',
+                  gap: '0.5rem',
+                }}
+              >
+                <Link
+                  href={`/player/orders/${o.id}`}
+                  className="player-btn-ghost"
+                  style={{
+                    textAlign: 'center',
+                    textDecoration: 'none',
+                    padding: '0.7rem',
+                  }}
+                >
                   查看详情
                 </Link>
+                <button
+                  className="player-btn-ghost"
+                  onClick={() => handleChat(o)}
+                  disabled={chatting === o.id}
+                  style={{
+                    padding: '0.7rem',
+                    borderColor: 'rgba(99,102,241,0.4)',
+                    color: '#818cf8',
+                  }}
+                >
+                  {chatting === o.id ? '打开中…' : '💬 联系老板'}
+                </button>
                 <button
                   className="player-btn-primary"
                   onClick={() => handleAccept(o)}
                   disabled={accepting === o.id}
+                  style={{ padding: '0.7rem' }}
                 >
                   {accepting === o.id ? '接单中…' : '🔥 接单'}
                 </button>

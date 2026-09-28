@@ -28,11 +28,14 @@ export async function GET(
 
   // 权限校验
   const isMember = me.role === 'member' && order.member_id === me.id;
-  const isPlayer = me.role === 'player' && order.player_id === me.playerId;
+  const isMyOrder = me.role === 'player' && order.player_id === me.playerId;
+  // 陪玩能看抢单池的订单（未指定、还在 pooling）
+  const canSeePool =
+    me.role === 'player' && order.status === 'pooling' && !order.player_id;
   const isShop = me.role === 'shop_admin' && order.shop_id === me.shopId;
   const isAdmin = me.role === 'super_admin';
 
-  if (!isMember && !isPlayer && !isShop && !isAdmin) {
+  if (!isMember && !isMyOrder && !canSeePool && !isShop && !isAdmin) {
     return Response.json({ ok: false, error: '无权查看' }, { status: 403 });
   }
 

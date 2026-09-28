@@ -13,6 +13,7 @@ import {
   type Order,
   type Review,
 } from '@/lib/order';
+import { getOrCreateConversation } from '@/lib/chat';
 import ReviewModal from '@/components/ReviewModal';
 
 export default function MemberOrderDetailPage() {
@@ -22,6 +23,7 @@ export default function MemberOrderDetailPage() {
   const [working, setWorking] = useState(false);
   const [myReview, setMyReview] = useState<Review | null>(null);
   const [showReview, setShowReview] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
 
   async function load() {
     const [o, r] = await Promise.all([
@@ -59,6 +61,20 @@ export default function MemberOrderDetailPage() {
     load();
   }
 
+  async function handleChat() {
+    if (!order) return;
+    setChatLoading(true);
+    const r = await getOrCreateConversation({ orderId: order.id });
+    setChatLoading(false);
+
+    if (!r.ok || !r.conversation) {
+      alert(r.error || '无法打开会话');
+      return;
+    }
+
+    window.location.href = '/member/chat/' + r.conversation.id;
+  }
+
   if (loading) return <div className="member-empty">加载中…</div>;
 
   if (!order) {
@@ -67,7 +83,9 @@ export default function MemberOrderDetailPage() {
         <div className="member-header">
           <h1 className="member-title">订单不存在</h1>
         </div>
-        <Link href="/member/orders" className="member-more">← 返回订单列表</Link>
+        <Link href="/member/orders" className="member-more">
+          ← 返回订单列表
+        </Link>
       </>
     );
   }
@@ -80,8 +98,12 @@ export default function MemberOrderDetailPage() {
   return (
     <>
       <div className="member-header">
-        <Link href="/member/orders" className="member-more">← 返回</Link>
-        <h1 className="member-title" style={{ marginTop: '0.5rem' }}>订单详情</h1>
+        <Link href="/member/orders" className="member-more">
+          ← 返回
+        </Link>
+        <h1 className="member-title" style={{ marginTop: '0.5rem' }}>
+          订单详情
+        </h1>
         <p className="member-subtitle">订单号 {order.order_no}</p>
       </div>
 
@@ -92,7 +114,8 @@ export default function MemberOrderDetailPage() {
             style={{
               fontSize: '0.85rem',
               padding: '0.3rem 0.9rem',
-              background: (ORDER_STATUS_COLOR[order.status] || '#6b7280') + '22',
+              background:
+                (ORDER_STATUS_COLOR[order.status] || '#6b7280') + '22',
               color: ORDER_STATUS_COLOR[order.status] || '#6b7280',
             }}
           >
@@ -153,7 +176,9 @@ export default function MemberOrderDetailPage() {
                 fontWeight: 800,
               }}
             >
-              {isPendingPrice ? '待接单后确定' : `¥${order.final_amount.toFixed(2)}`}
+              {isPendingPrice
+                ? '待接单后确定'
+                : `¥${order.final_amount.toFixed(2)}`}
             </span>
           </div>
         </div>
@@ -161,7 +186,10 @@ export default function MemberOrderDetailPage() {
 
       {myReview && (
         <div className="member-detail-card">
-          <div className="member-section-title" style={{ marginBottom: '0.8rem' }}>
+          <div
+            className="member-section-title"
+            style={{ marginBottom: '0.8rem' }}
+          >
             我的评价
           </div>
           <div className="review-display">
@@ -173,16 +201,29 @@ export default function MemberOrderDetailPage() {
               ))}
             </div>
             {myReview.tags && myReview.tags.length > 0 && (
-              <div className="review-tags" style={{ marginTop: '0.6rem', marginBottom: '0.6rem' }}>
+              <div
+                className="review-tags"
+                style={{ marginTop: '0.6rem', marginBottom: '0.6rem' }}
+              >
                 {myReview.tags.map((t) => (
-                  <span key={t} className="review-tag active" style={{ cursor: 'default' }}>
+                  <span
+                    key={t}
+                    className="review-tag active"
+                    style={{ cursor: 'default' }}
+                  >
                     {t}
                   </span>
                 ))}
               </div>
             )}
             {myReview.content && (
-              <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)', lineHeight: 1.7 }}>
+              <div
+                style={{
+                  fontSize: '0.9rem',
+                  color: 'rgba(255,255,255,0.8)',
+                  lineHeight: 1.7,
+                }}
+              >
                 {myReview.content}
               </div>
             )}
@@ -191,17 +232,27 @@ export default function MemberOrderDetailPage() {
       )}
 
       <div className="member-detail-actions">
-        <button
-          className="member-btn-ghost"
-          onClick={() => alert('聊天功能开发中')}
-        >
-          💬 联系陪玩
-        </button>
+        {order.player_id ? (
+          <button
+            className="member-btn-ghost"
+            onClick={handleChat}
+            disabled={chatLoading}
+          >
+            {chatLoading ? '打开中…' : '💬 联系陪玩'}
+          </button>
+        ) : (
+          <button className="member-btn-ghost" disabled>
+            ⏳ 等待陪玩接单
+          </button>
+        )}
 
         {canCancel && (
           <button
             className="member-btn-ghost"
-            style={{ borderColor: 'rgba(220,38,38,0.4)', color: '#f87171' }}
+            style={{
+              borderColor: 'rgba(220,38,38,0.4)',
+              color: '#f87171',
+            }}
             onClick={handleCancel}
             disabled={working}
           >
@@ -210,13 +261,20 @@ export default function MemberOrderDetailPage() {
         )}
 
         {canConfirm && (
-          <button className="member-btn-primary" onClick={handleConfirm} disabled={working}>
+          <button
+            className="member-btn-primary"
+            onClick={handleConfirm}
+            disabled={working}
+          >
             {working ? '处理中…' : '✅ 确认完成'}
           </button>
         )}
 
         {canReview && (
-          <button className="member-btn-primary" onClick={() => setShowReview(true)}>
+          <button
+            className="member-btn-primary"
+            onClick={() => setShowReview(true)}
+          >
             ⭐ 评价陪玩
           </button>
         )}

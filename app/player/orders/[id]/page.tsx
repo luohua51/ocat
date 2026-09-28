@@ -12,6 +12,7 @@ import {
   type Order,
   type Review,
 } from '@/lib/order';
+import { getOrCreateConversation } from '@/lib/chat';
 import ReviewModal from '@/components/ReviewModal';
 
 export default function PlayerOrderDetailPage() {
@@ -21,6 +22,7 @@ export default function PlayerOrderDetailPage() {
   const [working, setWorking] = useState(false);
   const [myReview, setMyReview] = useState<Review | null>(null);
   const [showReview, setShowReview] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
 
   async function load() {
     const [o, r] = await Promise.all([
@@ -56,6 +58,20 @@ export default function PlayerOrderDetailPage() {
     load();
   }
 
+  async function handleChat() {
+    if (!order) return;
+    setChatLoading(true);
+    const r = await getOrCreateConversation({ orderId: order.id });
+    setChatLoading(false);
+
+    if (!r.ok || !r.conversation) {
+      alert(r.error || '无法打开会话');
+      return;
+    }
+
+    window.location.href = '/player/chat/' + r.conversation.id;
+  }
+
   if (loading) return <div className="player-empty">加载中…</div>;
 
   if (!order) {
@@ -64,7 +80,9 @@ export default function PlayerOrderDetailPage() {
         <div className="player-header">
           <h1 className="player-title">订单不存在</h1>
         </div>
-        <Link href="/player/orders" className="player-more">← 返回订单列表</Link>
+        <Link href="/player/orders" className="player-more">
+          ← 返回订单列表
+        </Link>
       </>
     );
   }
@@ -74,8 +92,12 @@ export default function PlayerOrderDetailPage() {
   return (
     <>
       <div className="player-header">
-        <Link href="/player/orders" className="player-more">← 返回</Link>
-        <h1 className="player-title" style={{ marginTop: '0.5rem' }}>订单详情</h1>
+        <Link href="/player/orders" className="player-more">
+          ← 返回
+        </Link>
+        <h1 className="player-title" style={{ marginTop: '0.5rem' }}>
+          订单详情
+        </h1>
         <p className="player-subtitle">订单号 {order.order_no}</p>
       </div>
 
@@ -104,7 +126,9 @@ export default function PlayerOrderDetailPage() {
           </div>
           <div className="player-detail-row">
             <span className="player-detail-key">老板段位</span>
-            <span className="player-detail-val">{order.boss_rank || '未填'}</span>
+            <span className="player-detail-val">
+              {order.boss_rank || '未填'}
+            </span>
           </div>
           <div className="player-detail-row">
             <span className="player-detail-key">时长</span>
@@ -121,7 +145,11 @@ export default function PlayerOrderDetailPage() {
               <span className="player-detail-key">预计收入</span>
               <span
                 className="player-detail-val"
-                style={{ color: '#059669', fontSize: '1.3rem', fontWeight: 800 }}
+                style={{
+                  color: '#059669',
+                  fontSize: '1.3rem',
+                  fontWeight: 800,
+                }}
               >
                 ¥{order.player_income.toFixed(2)}
               </span>
@@ -132,7 +160,10 @@ export default function PlayerOrderDetailPage() {
 
       {myReview && (
         <div className="player-detail-card">
-          <div className="player-section-title" style={{ marginBottom: '0.8rem' }}>
+          <div
+            className="player-section-title"
+            style={{ marginBottom: '0.8rem' }}
+          >
             我的评价
           </div>
           <div className="review-display">
@@ -144,16 +175,29 @@ export default function PlayerOrderDetailPage() {
               ))}
             </div>
             {myReview.tags && myReview.tags.length > 0 && (
-              <div className="review-tags" style={{ marginTop: '0.6rem', marginBottom: '0.6rem' }}>
+              <div
+                className="review-tags"
+                style={{ marginTop: '0.6rem', marginBottom: '0.6rem' }}
+              >
                 {myReview.tags.map((t) => (
-                  <span key={t} className="review-tag active" style={{ cursor: 'default' }}>
+                  <span
+                    key={t}
+                    className="review-tag active"
+                    style={{ cursor: 'default' }}
+                  >
                     {t}
                   </span>
                 ))}
               </div>
             )}
             {myReview.content && (
-              <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)', lineHeight: 1.7 }}>
+              <div
+                style={{
+                  fontSize: '0.9rem',
+                  color: 'rgba(255,255,255,0.8)',
+                  lineHeight: 1.7,
+                }}
+              >
                 {myReview.content}
               </div>
             )}
@@ -162,18 +206,30 @@ export default function PlayerOrderDetailPage() {
       )}
 
       <div className="player-detail-actions">
-        <button className="player-btn-ghost" onClick={() => alert('聊天功能开发中')}>
-          💬 联系老板
+        <button
+          className="player-btn-ghost"
+          onClick={handleChat}
+          disabled={chatLoading}
+        >
+          {chatLoading ? '打开中…' : '💬 联系老板'}
         </button>
 
         {order.status === 'locked' && (
-          <button className="player-btn-primary" onClick={handleStart} disabled={working}>
+          <button
+            className="player-btn-primary"
+            onClick={handleStart}
+            disabled={working}
+          >
             {working ? '处理中…' : '▶ 开始服务'}
           </button>
         )}
 
         {order.status === 'in_service' && (
-          <button className="player-btn-primary" onClick={handleFinish} disabled={working}>
+          <button
+            className="player-btn-primary"
+            onClick={handleFinish}
+            disabled={working}
+          >
             {working ? '处理中…' : '✅ 完成服务'}
           </button>
         )}
@@ -185,7 +241,10 @@ export default function PlayerOrderDetailPage() {
         )}
 
         {canReview && (
-          <button className="player-btn-primary" onClick={() => setShowReview(true)}>
+          <button
+            className="player-btn-primary"
+            onClick={() => setShowReview(true)}
+          >
             ⭐ 评价老板
           </button>
         )}
