@@ -3,9 +3,6 @@
 import { useEffect, useState } from 'react';
 import { fetchGames, type Game } from '@/lib/game';
 
-// ============================================================
-// 类型
-// ============================================================
 type PlayerPrice = {
   id: number;
   player_id: number;
@@ -25,6 +22,10 @@ export default function PlayerPricesPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [working, setWorking] = useState(false);
 
+  // 散陪开关
+  const [acceptFreelance, setAcceptFreelance] = useState(false);
+  const [toggleLoading, setToggleLoading] = useState(false);
+
   // 新增表单
   const [newGameId, setNewGameId] = useState<number>(0);
   const [newTier, setNewTier] = useState<string>('娱乐');
@@ -35,28 +36,23 @@ export default function PlayerPricesPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  // ============================================================
   // 加载数据
-  // ============================================================
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       try {
-        const [gamesData, pricesRes] = await Promise.all([
+        const [gamesData, pricesRes, freelanceRes] = await Promise.all([
           fetchGames(),
           fetch('/api/player/prices', { cache: 'no-store' }).then((r) => r.json()),
+          fetch('/api/player/freelance', { cache: 'no-store' }).then((r) => r.json()),
         ]);
 
         if (cancelled) return;
 
         setGames(gamesData);
-
-        if (pricesRes.ok) {
-          setPrices(pricesRes.prices || []);
-        } else {
-          console.error('加载价格失败:', pricesRes.error);
-        }
+        if (pricesRes.ok) setPrices(pricesRes.prices || []);
+        if (freelanceRes.ok) setAcceptFreelance(!!freelanceRes.acceptFreelance);
       } catch (err) {
         console.error('加载异常:', err);
       } finally {
@@ -70,12 +66,39 @@ export default function PlayerPricesPage() {
     };
   }, [refreshKey]);
 
-  // ============================================================
-  // 工具
-  // ============================================================
   function gameName(gameId: number) {
     const g = games.find((x) => x.id === gameId);
     return g?.name || `未知游戏(${gameId})`;
+  }
+
+  // ============================================================
+  // 切换开关
+  // ============================================================
+  async function handleToggleFreelance() {
+    if (toggleLoading) return;
+    const next = !acceptFreelance;
+    setToggleLoading(true);
+
+    try {
+      const res = await fetch('/api/player/freelance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accept: next }),
+      });
+      const data = await res.json();
+
+      if (!data.ok) {
+        alert(data.error || '切换失败');
+        return;
+      }
+
+      setAcceptFreelance(next);
+      alert(next ? '已开启散陪接单' : '已关闭散陪接单');
+    } catch (err: any) {
+      alert(err?.message || '网络错误');
+    } finally {
+      setToggleLoading(false);
+    }
   }
 
   // ============================================================
@@ -163,8 +186,6 @@ export default function PlayerPricesPage() {
       const data = await res.json();
       setWorking(false);
 
-      console.log('delete result:', res.status, data);
-
       if (!data.ok) {
         alert(data.error || `删除失败（${res.status}）`);
         return;
@@ -187,167 +208,210 @@ export default function PlayerPricesPage() {
     grouped[p.game_id].push(p);
   });
 
-  // ============================================================
-  // 渲染
-  // ============================================================
   return (
     <>
       <div className="player-header">
         <h1 className="player-title">散陪定价</h1>
-        <p className="player-subtitle">设置价格后才能在抢单池接单</p>
+        <p className="player-subtitle">开启散陪后，才能在抢单池接单</p>
       </div>
 
-      {/* 当前价格 */}
-      <div className="player-section">
-        <h2 className="player-section-title">我的散陪价</h2>
-
-        {loading ? (
-          <div className="player-empty">加载中…</div>
-        ) : prices.length === 0 ? (
-          <div className="player-empty">还没设置价格，在下方新增</div>
-        ) : (
-          <div className="shop-price-groups">
-            {Object.entries(grouped).map(([gameId, list]) => (
-              <div key={gameId} className="shop-price-group">
-                <div className="shop-price-group-title">
-                  🎮 {gameName(Number(gameId))}
-                </div>
-                <div className="shop-price-list">
-                  {list.map((p) => (
-                    <div key={p.id} className="shop-price-item">
-                      <div className="shop-price-info">
-                        <span className="shop-badge">{p.tier}</span>
-                        <span className="shop-price-rank">
-                          {p.boss_rank || '通用'}
-                        </span>
-                      </div>
-
-                      <div className="shop-price-right">
-                        {editingId === p.id ? (
-                          <>
-                            <span style={{ color: 'rgba(255,255,255,0.5)' }}>¥</span>
-                            <input
-                              className="shop-price-input"
-                              type="number"
-                              step="0.5"
-                              min="9.9"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              autoFocus
-                            />
-                            <button
-                              className="shop-btn-sm"
-                              onClick={() => handleSaveEdit(p.id)}
-                              disabled={working}
-                            >
-                              保存
-                            </button>
-                            <button
-                              className="shop-btn-sm"
-                              onClick={() => setEditingId(null)}
-                            >
-                              取消
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <span className="shop-price-value">
-                              ¥{Number(p.price_per_hour).toFixed(2)}/时
-                            </span>
-                            <button
-                              className="shop-btn-sm"
-                              onClick={() => {
-                                setEditingId(p.id);
-                                setEditValue(String(p.price_per_hour));
-                              }}
-                            >
-                              修改
-                            </button>
-                            <button
-                              className="shop-btn-sm shop-btn-danger"
-                              onClick={() => handleDelete(p.id)}
-                              disabled={working}
-                            >
-                              删除
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+      {/* 开关卡片 */}
+      <div className="player-toggle-card">
+        <div>
+          <div className="player-toggle-title">开启散陪接单</div>
+          <div className="player-toggle-desc">
+            开启后可在抢单大厅接单，并设置散陪价格
           </div>
-        )}
-      </div>
-
-      {/* 新增价格 */}
-      <div className="player-section">
-        <h2 className="player-section-title">新增价格</h2>
-        <div className="player-add-form">
-          <select
-            className="player-select"
-            value={newGameId}
-            onChange={(e) => setNewGameId(Number(e.target.value))}
-          >
-            <option value={0}>选择游戏</option>
-            {games.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="player-select"
-            value={newTier}
-            onChange={(e) => setNewTier(e.target.value)}
-          >
-            {TIERS.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-
-          <input
-            className="player-input"
-            type="number"
-            step="0.5"
-            min="9.9"
-            placeholder="时薪（最低 9.9）"
-            value={newPrice}
-            onChange={(e) => setNewPrice(e.target.value)}
-          />
-
-          <button
-            className="player-btn-primary"
-            onClick={handleAdd}
-            disabled={working}
-          >
-            {working ? '保存中…' : '新增'}
-          </button>
         </div>
+        <button
+          className={'player-toggle ' + (acceptFreelance ? 'on' : 'off')}
+          onClick={handleToggleFreelance}
+          disabled={toggleLoading}
+        >
+          <span className="player-toggle-dot" />
+        </button>
+      </div>
 
-        {error && (
-          <div
-            style={{
-              color: '#f87171',
-              fontSize: '0.85rem',
-              marginTop: '0.6rem',
-            }}
-          >
-            {error}
-          </div>
-        )}
-
-        <div className="player-note" style={{ marginTop: '1rem' }}>
-          💡 散陪只有「娱乐」「技术」两个档位。
+      {/* 开关关闭时：提示 */}
+      {!acceptFreelance && (
+        <div
+          style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px dashed rgba(255,122,0,0.3)',
+            borderRadius: '0.9rem',
+            padding: '1.5rem 1.2rem',
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: '0.9rem',
+            textAlign: 'center',
+            lineHeight: 1.8,
+          }}
+        >
+          你当前没有开启散陪接单。
           <br />
-          平台抽成 2%，你拿 98%。
+          开启后可以：
+          <br />
+          · 在抢单大厅接单
+          <br />
+          · 自由设置时薪
+          <br />
+          · 展示页显示你的散陪价格
         </div>
-      </div>
+      )}
+
+      {/* 开关打开时：显示价格设置 */}
+      {acceptFreelance && (
+        <>
+          <div className="player-section">
+            <h2 className="player-section-title">我的散陪价</h2>
+
+            {loading ? (
+              <div className="player-empty">加载中…</div>
+            ) : prices.length === 0 ? (
+              <div className="player-empty">还没设置价格，在下方新增</div>
+            ) : (
+              <div className="shop-price-groups">
+                {Object.entries(grouped).map(([gameId, list]) => (
+                  <div key={gameId} className="shop-price-group">
+                    <div className="shop-price-group-title">
+                      🎮 {gameName(Number(gameId))}
+                    </div>
+                    <div className="shop-price-list">
+                      {list.map((p) => (
+                        <div key={p.id} className="shop-price-item">
+                          <div className="shop-price-info">
+                            <span className="shop-badge">{p.tier}</span>
+                            <span className="shop-price-rank">
+                              {p.boss_rank || '通用'}
+                            </span>
+                          </div>
+
+                          <div className="shop-price-right">
+                            {editingId === p.id ? (
+                              <>
+                                <span style={{ color: 'rgba(255,255,255,0.5)' }}>¥</span>
+                                <input
+                                  className="shop-price-input"
+                                  type="number"
+                                  step="0.5"
+                                  min="9.9"
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  autoFocus
+                                />
+                                <button
+                                  className="shop-btn-sm"
+                                  onClick={() => handleSaveEdit(p.id)}
+                                  disabled={working}
+                                >
+                                  保存
+                                </button>
+                                <button
+                                  className="shop-btn-sm"
+                                  onClick={() => setEditingId(null)}
+                                >
+                                  取消
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <span className="shop-price-value">
+                                  ¥{Number(p.price_per_hour).toFixed(2)}/时
+                                </span>
+                                <button
+                                  className="shop-btn-sm"
+                                  onClick={() => {
+                                    setEditingId(p.id);
+                                    setEditValue(String(p.price_per_hour));
+                                  }}
+                                >
+                                  修改
+                                </button>
+                                <button
+                                  className="shop-btn-sm shop-btn-danger"
+                                  onClick={() => handleDelete(p.id)}
+                                  disabled={working}
+                                >
+                                  删除
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="player-section">
+            <h2 className="player-section-title">新增价格</h2>
+            <div className="player-add-form">
+              <select
+                className="player-select"
+                value={newGameId}
+                onChange={(e) => setNewGameId(Number(e.target.value))}
+              >
+                <option value={0}>选择游戏</option>
+                {games.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="player-select"
+                value={newTier}
+                onChange={(e) => setNewTier(e.target.value)}
+              >
+                {TIERS.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                className="player-input"
+                type="number"
+                step="0.5"
+                min="9.9"
+                placeholder="时薪（最低 9.9）"
+                value={newPrice}
+                onChange={(e) => setNewPrice(e.target.value)}
+              />
+
+              <button
+                className="player-btn-primary"
+                onClick={handleAdd}
+                disabled={working}
+              >
+                {working ? '保存中…' : '新增'}
+              </button>
+            </div>
+
+            {error && (
+              <div
+                style={{
+                  color: '#f87171',
+                  fontSize: '0.85rem',
+                  marginTop: '0.6rem',
+                }}
+              >
+                {error}
+              </div>
+            )}
+
+            <div className="player-note" style={{ marginTop: '1rem' }}>
+              💡 散陪只有「娱乐」「技术」两个档位。
+              <br />
+              平台抽成 2%，你拿 98%。
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }

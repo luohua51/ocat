@@ -26,10 +26,10 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
   if (!supabase) return [];
 
   try {
-    // 1. 陪玩基础信息
+    // 1. 陪玩基础信息（加 accept_freelance）
     const { data: players, error: pErr } = await supabase
       .from('players')
-      .select('id, name, avatar, tier, weekly_orders, rating, status')
+      .select('id, name, avatar, tier, weekly_orders, rating, status, accept_freelance')
       .order('id', { ascending: true })
       .limit(100);
 
@@ -75,22 +75,20 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
 
     const shopMap = new Map((shops || []).map((s) => [s.id, s.name]));
 
-    // 6. 通过后端 API 拿到 player 和 shop 的关联（避免直连 users 表）
-    //    这里改用 player_shops 直接查询：需要把 player_id 映射到 player_user_id
-    //    简化方案：调一个轻量 API
-    let playerShopRelations: { playerId: number; shopId: number; tier: string }[] = [];
+    // 6. 陪玩 user 表关联
+    const { data: playerUsers } = await supabase
+      .from('users')
+      .select('id, player_id, shop_id')
+      .in('player_id', ids)
+      .eq('role', 'player');
 
-    try {
-      const res = await fetch('/api/public/player-identities', { cache: 'no-store' });
-      const data = await res.json();
-      if (data.ok) {
-        playerShopRelations = data.relations || [];
-      }
-    } catch {
-      // 忽略
-    }
+    // 7. player_shops 认证表
+    const { data: playerShops } = await supabase
+      .from('player_shops')
+      .select('player_user_id, shop_id, tier')
+      .eq('is_active', true);
 
-    // 7. 组装
+    // 8. 组装
     return players.map((p) => {
       const prof = (profiles || []).find((x: any) => x.player_id === p.id);
 
@@ -107,22 +105,44 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
 
       const identities: PlayerIdentity[] = [];
 
-      // 店铺身份（从后端 API 拿到的 relations）
-      const myCerts = playerShopRelations.filter((r) => r.playerId === p.id);
-      myCerts.forEach((c) => {
-        const shopName = shopMap.get(c.shopId);
-        if (shopName) {
-          identities.push({
-            type: 'shop',
-            shopName,
-            tier: c.tier,
-            label: `${shopName}.${c.tier}`,
-          });
-        }
-      });
+      const userInfo = (playerUsers || []).find((u: any) => u.player_id === p.id);
 
-      // 散陪身份
-      const hasFreelance = (prices || []).some((x: any) => x.player_id === p.id);
+      // 店铺身份
+      if (userInfo) {
+        const certs = (playerShops || []).filter(
+          (ps: any) => ps.player_user_id === userInfo.id
+        );
+
+        if (certs.length > 0) {
+          certs.forEach((c: any) => {
+            const shopName = shopMap.get(c.shop_id);
+            if (shopName) {
+              identities.push({
+                type: 'shop',
+                shopName,
+                tier: c.tier,
+                label: `${shopName}.${c.tier}`,
+              });
+            }
+          });
+        } else if (userInfo.shop_id) {
+          const shopName = shopMap.get(userInfo.shop_id);
+          if (shopName) {
+            identities.push({
+              type: 'shop',
+              shopName,
+              tier: p.tier,
+              label: `${shopName}.${p.tier}`,
+            });
+          }
+        }
+      }
+
+      // 散陪身份：必须 accept_freelance = true 且有价格
+      const hasFreelance =
+        p.accept_freelance &&
+        (prices || []).some((x: any) => x.player_id === p.id);
+
       if (hasFreelance) {
         const freelanceTier =
           (prices || []).find((x: any) => x.player_id === p.id)?.tier || p.tier;
@@ -138,13 +158,16 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
       const mainTier = mainIdentity?.tier || p.tier;
       const mainShopName = mainIdentity?.shopName || '';
 
+      // 价格展示：只有接了散陪单才显示价格
+      const displayPrice = p.accept_freelance ? minPrice : 0;
+
       return {
         id: p.id,
         name: p.name,
         avatar: p.avatar || '',
         tier: mainTier,
         games: uniqueGames as string[],
-        price: minPrice,
+        price: displayPrice,
         signature: prof?.signature || '',
         weeklyOrders: p.weekly_orders || 0,
         rating: p.rating || 100,
