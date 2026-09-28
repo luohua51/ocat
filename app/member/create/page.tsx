@@ -15,7 +15,9 @@ function CreateContent() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const [playerId, setPlayerId] = useState<number>(playerIdFromUrl ? Number(playerIdFromUrl) : 0);
+  const [playerId, setPlayerId] = useState<number>(
+    playerIdFromUrl ? Number(playerIdFromUrl) : 0
+  );
   const [gameId, setGameId] = useState<number>(0);
   const [tier, setTier] = useState<string>('娱乐');
   const [bossRank, setBossRank] = useState('');
@@ -27,8 +29,8 @@ function CreateContent() {
     async function load() {
       if (!supabase) return;
       const [p, g] = await Promise.all([
-        supabase.from('players').select('id, name, tier').eq('status', 'active'),
-        supabase.from('games').select('id, name').eq('status', 'active'),
+        supabase.from('players').select('id, name, tier, accept_freelance').eq('status', 'active'),
+        supabase.from('games').select('id, name, ranks').eq('status', 'active'),
       ]);
       setPlayers(p.data || []);
       setGames(g.data || []);
@@ -38,7 +40,16 @@ function CreateContent() {
   }, []);
 
   const player = players.find((p) => p.id === playerId);
+  const selectedGame = games.find((g) => g.id === gameId);
   const isDesignated = playerId > 0;
+
+  // 当前游戏可选的段位
+  const availableRanks: string[] = (selectedGame?.ranks || []) as string[];
+
+  // 游戏变了，清空段位
+  useEffect(() => {
+    setBossRank('');
+  }, [gameId]);
 
   const unitPrice = 30;
   const total = isDesignated ? unitPrice * hours : 0;
@@ -48,7 +59,7 @@ function CreateContent() {
     setError('');
 
     if (!gameId) return setError('请选择游戏');
-    if (!bossRank.trim()) return setError('请填写你的段位');
+    if (!bossRank.trim()) return setError('请选择你的段位');
     if (hours <= 0) return setError('时长必须大于 0');
 
     setSubmitting(true);
@@ -56,7 +67,7 @@ function CreateContent() {
       playerId: isDesignated ? playerId : 0,
       gameId,
       tier,
-      bossRank,
+      bossRank: bossRank.trim(),
       durationHours: hours,
       identityType: 'freelance',
       remark,
@@ -71,9 +82,7 @@ function CreateContent() {
     router.push('/member/orders/' + result.order!.id);
   }
 
-  if (loading) {
-    return <div className="member-empty">加载中…</div>;
-  }
+  if (loading) return <div className="member-empty">加载中…</div>;
 
   return (
     <>
@@ -93,17 +102,28 @@ function CreateContent() {
             <option value={0}>🎯 不指定（发到抢单池，陪玩来抢）</option>
             {players.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}（{p.tier}）
+                {p.name}（{p.tier}）{!p.accept_freelance ? ' · 仅店陪' : ''}
               </option>
             ))}
           </select>
 
           {player && (
             <div className="member-player-preview">
-              <div className="member-player-preview-avatar">{player.name.charAt(0)}</div>
+              <div className="member-player-preview-avatar">
+                {player.name.charAt(0)}
+              </div>
               <div>
-                <div style={{ fontWeight: 700, color: '#fff' }}>{player.name}</div>
-                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>散陪</div>
+                <div style={{ fontWeight: 700, color: '#fff' }}>
+                  {player.name}
+                </div>
+                <div
+                  style={{
+                    fontSize: '0.8rem',
+                    color: 'rgba(255,255,255,0.6)',
+                  }}
+                >
+                  {player.accept_freelance ? '可接散陪单' : '仅店铺单'}
+                </div>
               </div>
             </div>
           )}
@@ -123,8 +143,6 @@ function CreateContent() {
             >
               📢 不指定陪玩，订单会进入<strong style={{ color: '#818cf8' }}>抢单池</strong>，
               所有陪玩都能看到并抢单。
-              <br />
-              价格由接单的陪玩确定，接单后你可以确认或换人。
             </div>
           )}
         </div>
@@ -161,15 +179,39 @@ function CreateContent() {
           </div>
         </div>
 
+        {/* 段位：从游戏里读，做成按钮 */}
         <div className="member-form-block">
-          <div className="member-form-label">你的段位</div>
-          <input
-            className="member-input"
-            type="text"
-            placeholder="如：永劫修罗、瓦钻石"
-            value={bossRank}
-            onChange={(e) => setBossRank(e.target.value)}
-          />
+          <div className="member-form-label">
+            你的段位
+            {selectedGame && availableRanks.length > 0 && (
+              <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)', marginLeft: '0.5rem' }}>
+                （{selectedGame.name}）
+              </span>
+            )}
+          </div>
+
+          {!selectedGame ? (
+            <div className="member-empty" style={{ padding: '0.8rem', fontSize: '0.85rem' }}>
+              请先选择游戏
+            </div>
+          ) : availableRanks.length === 0 ? (
+            <div className="member-empty" style={{ padding: '0.8rem', fontSize: '0.85rem' }}>
+              该游戏没有段位
+            </div>
+          ) : (
+            <div className="member-radio-row">
+              {availableRanks.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  className={'member-radio' + (bossRank === r ? ' active' : '')}
+                  onClick={() => setBossRank(r)}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="member-form-block">
@@ -201,14 +243,24 @@ function CreateContent() {
 
         <div className="member-create-summary">
           <div>
-            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>单价</div>
+            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
+              单价
+            </div>
             <div style={{ fontSize: '1rem', fontWeight: 700, color: '#fff' }}>
               {isDesignated ? `¥${unitPrice.toFixed(2)}/时` : '待定'}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>总价</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#FF7A00' }}>
+            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
+              总价
+            </div>
+            <div
+              style={{
+                fontSize: '1.6rem',
+                fontWeight: 800,
+                color: '#FF7A00',
+              }}
+            >
               {isDesignated ? `¥${total.toFixed(2)}` : '待接单后确定'}
             </div>
           </div>
@@ -216,7 +268,11 @@ function CreateContent() {
 
         {error && <div className="member-create-error">{error}</div>}
 
-        <button type="submit" className="member-submit-btn" disabled={submitting}>
+        <button
+          type="submit"
+          className="member-submit-btn"
+          disabled={submitting}
+        >
           {submitting ? '提交中…' : isDesignated ? '提交订单' : '发布到抢单池'}
         </button>
       </form>

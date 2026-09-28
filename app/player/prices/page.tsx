@@ -29,6 +29,7 @@ export default function PlayerPricesPage() {
   // 新增表单
   const [newGameId, setNewGameId] = useState<number>(0);
   const [newTier, setNewTier] = useState<string>('娱乐');
+  const [newBossRank, setNewBossRank] = useState('');
   const [newPrice, setNewPrice] = useState('');
   const [error, setError] = useState('');
 
@@ -36,7 +37,6 @@ export default function PlayerPricesPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  // 加载数据
   useEffect(() => {
     let cancelled = false;
 
@@ -71,8 +71,16 @@ export default function PlayerPricesPage() {
     return g?.name || `未知游戏(${gameId})`;
   }
 
+  const selectedGame = games.find((g) => g.id === newGameId);
+  const availableRanks: string[] = (selectedGame?.ranks || []) as string[];
+
+  // 游戏变了清空段位
+  useEffect(() => {
+    setNewBossRank('');
+  }, [newGameId]);
+
   // ============================================================
-  // 切换开关
+  // 开关
   // ============================================================
   async function handleToggleFreelance() {
     if (toggleLoading) return;
@@ -102,15 +110,14 @@ export default function PlayerPricesPage() {
   }
 
   // ============================================================
-  // 新增价格
+  // 新增
   // ============================================================
   async function handleAdd() {
     setError('');
     if (!newGameId) return setError('请选择游戏');
+    if (!newBossRank) return setError('请选择老板段位');
     const priceNum = parseFloat(newPrice);
-    if (!priceNum || priceNum < 9.9) {
-      return setError('最低 9.9 元/时');
-    }
+    if (!priceNum || priceNum < 9.9) return setError('最低 9.9 元/时');
 
     setWorking(true);
     try {
@@ -120,6 +127,7 @@ export default function PlayerPricesPage() {
         body: JSON.stringify({
           gameId: newGameId,
           tier: newTier,
+          bossRank: newBossRank,
           pricePerHour: priceNum,
         }),
       });
@@ -133,6 +141,7 @@ export default function PlayerPricesPage() {
 
       setNewPrice('');
       setNewGameId(0);
+      setNewBossRank('');
       setRefreshKey((k) => k + 1);
     } catch (err: any) {
       setWorking(false);
@@ -141,7 +150,7 @@ export default function PlayerPricesPage() {
   }
 
   // ============================================================
-  // 修改价格
+  // 修改
   // ============================================================
   async function handleSaveEdit(id: number) {
     const priceNum = parseFloat(editValue);
@@ -173,7 +182,7 @@ export default function PlayerPricesPage() {
   }
 
   // ============================================================
-  // 删除价格
+  // 删除
   // ============================================================
   async function handleDelete(id: number) {
     if (!confirm('确定删除这条价格？')) return;
@@ -199,9 +208,7 @@ export default function PlayerPricesPage() {
     }
   }
 
-  // ============================================================
   // 按游戏分组
-  // ============================================================
   const grouped: Record<number, PlayerPrice[]> = {};
   prices.forEach((p) => {
     if (!grouped[p.game_id]) grouped[p.game_id] = [];
@@ -215,7 +222,7 @@ export default function PlayerPricesPage() {
         <p className="player-subtitle">开启散陪后，才能在抢单池接单</p>
       </div>
 
-      {/* 开关卡片 */}
+      {/* 开关 */}
       <div className="player-toggle-card">
         <div>
           <div className="player-toggle-title">开启散陪接单</div>
@@ -232,7 +239,6 @@ export default function PlayerPricesPage() {
         </button>
       </div>
 
-      {/* 开关关闭时：提示 */}
       {!acceptFreelance && (
         <div
           style={{
@@ -258,9 +264,9 @@ export default function PlayerPricesPage() {
         </div>
       )}
 
-      {/* 开关打开时：显示价格设置 */}
       {acceptFreelance && (
         <>
+          {/* 当前价格 */}
           <div className="player-section">
             <h2 className="player-section-title">我的散陪价</h2>
 
@@ -345,34 +351,96 @@ export default function PlayerPricesPage() {
             )}
           </div>
 
+          {/* 新增 */}
           <div className="player-section">
             <h2 className="player-section-title">新增价格</h2>
-            <div className="player-add-form">
-              <select
-                className="player-select"
-                value={newGameId}
-                onChange={(e) => setNewGameId(Number(e.target.value))}
+
+            <div style={{ marginBottom: '1rem' }}>
+              <div
+                className="shop-price-group-title"
+                style={{ marginBottom: '0.6rem' }}
               >
-                <option value={0}>选择游戏</option>
+                1. 选择游戏
+              </div>
+              <div className="member-radio-row">
                 {games.map((g) => (
-                  <option key={g.id} value={g.id}>
+                  <button
+                    key={g.id}
+                    type="button"
+                    className={'member-radio' + (newGameId === g.id ? ' active' : '')}
+                    onClick={() => setNewGameId(g.id)}
+                  >
                     {g.name}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
+            </div>
 
-              <select
-                className="player-select"
-                value={newTier}
-                onChange={(e) => setNewTier(e.target.value)}
+            <div style={{ marginBottom: '1rem' }}>
+              <div
+                className="shop-price-group-title"
+                style={{ marginBottom: '0.6rem' }}
               >
+                2. 选择档位
+              </div>
+              <div className="member-radio-row">
                 {TIERS.map((t) => (
-                  <option key={t} value={t}>
+                  <button
+                    key={t}
+                    type="button"
+                    className={'member-radio' + (newTier === t ? ' active' : '')}
+                    onClick={() => setNewTier(t)}
+                  >
                     {t}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
+            </div>
 
+            <div style={{ marginBottom: '1rem' }}>
+              <div
+                className="shop-price-group-title"
+                style={{ marginBottom: '0.6rem' }}
+              >
+                3. 选择老板段位{newGameId ? `（${gameName(newGameId)}）` : ''}
+              </div>
+              {!newGameId ? (
+                <div
+                  className="player-empty"
+                  style={{ padding: '0.8rem', fontSize: '0.85rem' }}
+                >
+                  请先选择游戏
+                </div>
+              ) : availableRanks.length === 0 ? (
+                <div
+                  className="player-empty"
+                  style={{ padding: '0.8rem', fontSize: '0.85rem' }}
+                >
+                  该游戏没有段位列表
+                </div>
+              ) : (
+                <div className="member-radio-row">
+                  {availableRanks.map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      className={'member-radio' + (newBossRank === r ? ' active' : '')}
+                      onClick={() => setNewBossRank(r)}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: '1.2rem' }}>
+              <div
+                className="shop-price-group-title"
+                style={{ marginBottom: '0.6rem' }}
+              >
+                4. 每小时价格
+              </div>
               <input
                 className="player-input"
                 type="number"
@@ -381,15 +449,8 @@ export default function PlayerPricesPage() {
                 placeholder="时薪（最低 9.9）"
                 value={newPrice}
                 onChange={(e) => setNewPrice(e.target.value)}
+                style={{ maxWidth: '16rem' }}
               />
-
-              <button
-                className="player-btn-primary"
-                onClick={handleAdd}
-                disabled={working}
-              >
-                {working ? '保存中…' : '新增'}
-              </button>
             </div>
 
             {error && (
@@ -397,12 +458,20 @@ export default function PlayerPricesPage() {
                 style={{
                   color: '#f87171',
                   fontSize: '0.85rem',
-                  marginTop: '0.6rem',
+                  marginBottom: '0.8rem',
                 }}
               >
                 {error}
               </div>
             )}
+
+            <button
+              className="player-btn-primary"
+              onClick={handleAdd}
+              disabled={working}
+            >
+              {working ? '保存中…' : '确认新增'}
+            </button>
 
             <div className="player-note" style={{ marginTop: '1rem' }}>
               💡 散陪只有「娱乐」「技术」两个档位。

@@ -44,23 +44,29 @@ export default function ShopPricesPage() {
     return games.find((g) => g.id === id)?.name || '未知';
   }
 
-  // 娱乐/技术需要段位，金/魔/星不需要
+  const selectedGame = games.find((g) => g.id === newGameId);
+  const availableRanks: string[] = (selectedGame?.ranks || []) as string[];
   const needsRank = newTier === '娱乐' || newTier === '技术';
+
+  // 游戏或档位变了，清空段位
+  useEffect(() => {
+    setNewBossRank('');
+  }, [newGameId, newTier]);
 
   async function handleAdd() {
     setError('');
     if (!newGameId) return setError('请选择游戏');
     const priceNum = parseFloat(newPrice);
     if (!priceNum || priceNum <= 0) return setError('请输入有效价格');
-    if (needsRank && !newBossRank.trim()) {
-      return setError('娱乐/技术需要填老板段位');
+    if (needsRank && !newBossRank) {
+      return setError('请选择老板段位');
     }
 
     setWorking(true);
     const r = await upsertShopPrice({
       gameId: newGameId,
       tier: newTier,
-      bossRank: needsRank ? newBossRank.trim() : null,
+      bossRank: needsRank ? newBossRank : null, // 金/魔/星后端自动设"任意"
       pricePerHour: priceNum,
     });
     setWorking(false);
@@ -190,71 +196,139 @@ export default function ShopPricesPage() {
         )}
       </div>
 
+      {/* 新增价格 */}
       <div className="shop-section">
         <h2 className="shop-section-title">新增价格</h2>
-        <div className="shop-add-form">
-          <select
-            className="shop-select"
-            value={newGameId}
-            onChange={(e) => setNewGameId(Number(e.target.value))}
-          >
-            <option value={0}>选择游戏</option>
+
+        <div style={{ marginBottom: '1rem' }}>
+          <div className="shop-price-group-title" style={{ marginBottom: '0.6rem' }}>
+            1. 选择游戏
+          </div>
+          <div className="member-radio-row">
             {games.map((g) => (
-              <option key={g.id} value={g.id}>
+              <button
+                key={g.id}
+                type="button"
+                className={'member-radio' + (newGameId === g.id ? ' active' : '')}
+                onClick={() => setNewGameId(g.id)}
+              >
                 {g.name}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
+        </div>
 
-          <select
-            className="shop-select"
-            value={newTier}
-            onChange={(e) => setNewTier(e.target.value)}
-          >
+        <div style={{ marginBottom: '1rem' }}>
+          <div className="shop-price-group-title" style={{ marginBottom: '0.6rem' }}>
+            2. 选择档位
+          </div>
+          <div className="member-radio-row">
             {SHOP_TIERS.map((t) => (
-              <option key={t} value={t}>
+              <button
+                key={t}
+                type="button"
+                className={'member-radio' + (newTier === t ? ' active' : '')}
+                onClick={() => setNewTier(t)}
+              >
                 {t}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
+        </div>
 
-          <input
-            className="shop-input"
-            type="text"
-            placeholder={needsRank ? '老板段位（如：修罗）' : '无需填段位'}
-            value={needsRank ? newBossRank : '任意'}
-            onChange={(e) => setNewBossRank(e.target.value)}
-            disabled={!needsRank}
-          />
+        {/* 段位 */}
+        {needsRank && (
+          <div style={{ marginBottom: '1rem' }}>
+            <div className="shop-price-group-title" style={{ marginBottom: '0.6rem' }}>
+              3. 选择老板段位（{gameName(newGameId)}）
+            </div>
+            {!newGameId ? (
+              <div className="shop-empty" style={{ padding: '0.8rem', fontSize: '0.85rem' }}>
+                请先选择游戏
+              </div>
+            ) : availableRanks.length === 0 ? (
+              <div className="shop-empty" style={{ padding: '0.8rem', fontSize: '0.85rem' }}>
+                该游戏没有段位列表
+              </div>
+            ) : (
+              <div className="member-radio-row">
+                {availableRanks.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    className={'member-radio' + (newBossRank === r ? ' active' : '')}
+                    onClick={() => setNewBossRank(r)}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
+        {!needsRank && newTier && (
+          <div style={{ marginBottom: '1rem' }}>
+            <div className="shop-price-group-title" style={{ marginBottom: '0.6rem' }}>
+              3. 段位
+            </div>
+            <div
+              style={{
+                padding: '0.7rem 1rem',
+                background: 'rgba(255,122,0,0.06)',
+                border: '1px dashed rgba(255,122,0,0.3)',
+                borderRadius: '0.6rem',
+                color: '#FF7A00',
+                fontSize: '0.88rem',
+                fontWeight: 600,
+              }}
+            >
+              任意段位（金牌/魔王/明星统一价）
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginBottom: '1.2rem' }}>
+          <div className="shop-price-group-title" style={{ marginBottom: '0.6rem' }}>
+            {needsRank ? '4' : '4'}. 每小时价格
+          </div>
           <input
             className="shop-input"
             type="number"
             step="1"
-            placeholder="时薪"
+            placeholder="时薪（元/小时）"
             value={newPrice}
             onChange={(e) => setNewPrice(e.target.value)}
+            style={{ maxWidth: '16rem' }}
           />
-
-          <button
-            className="shop-btn-primary"
-            onClick={handleAdd}
-            disabled={working}
-          >
-            {working ? '保存中…' : '新增'}
-          </button>
         </div>
 
         {error && (
-          <div style={{ color: '#f87171', fontSize: '0.85rem', marginTop: '0.6rem' }}>
+          <div
+            style={{
+              color: '#f87171',
+              fontSize: '0.85rem',
+              marginBottom: '0.8rem',
+            }}
+          >
             {error}
           </div>
         )}
 
+        <button
+          className="shop-btn-primary"
+          onClick={handleAdd}
+          disabled={working}
+        >
+          {working ? '保存中…' : '确认新增'}
+        </button>
+
         <div className="shop-note" style={{ marginTop: '1rem' }}>
-          💡 说明：<br />
-          · 「娱乐」「技术」需要按老板段位分别定价<br />
-          · 「金牌」「魔王」「明星」是店铺授予的认证档位，一口价
+          💡 说明：
+          <br />
+          · 「娱乐」「技术」需要按老板段位分别定价（如娱乐·蚀月、娱乐·修罗）
+          <br />
+          · 「金牌」「魔王」「明星」是店铺授予的认证档位，任意段位一口价
         </div>
       </div>
     </>

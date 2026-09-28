@@ -18,7 +18,6 @@ export async function POST(
   const orderId = Number(params.id);
   if (!orderId) return Response.json({ ok: false, error: '参数错误' }, { status: 400 });
 
-  // 1. 查订单
   const { data: order } = await supabaseAdmin
     .from('orders')
     .select('*')
@@ -33,15 +32,22 @@ export async function POST(
     return Response.json({ ok: false, error: '该订单已被接走' }, { status: 400 });
   }
 
-  // 2. 先查散陪价
-  const { data: freelancePrice } = await supabaseAdmin
+  const bossRank = order.boss_rank || null;
+
+  // 1. 查散陪价
+  let q = supabaseAdmin
     .from('player_prices')
     .select('price_per_hour')
     .eq('player_id', me.playerId)
     .eq('game_id', order.game_id)
     .eq('tier', order.tier)
-    .eq('is_active', true)
-    .maybeSingle();
+    .eq('is_active', true);
+
+  if (bossRank) {
+    q = q.eq('boss_rank', bossRank);
+  }
+
+  const { data: freelancePrice } = await q.maybeSingle();
 
   let unitPrice = 0;
   let identityType: 'freelance' | 'shop' = 'freelance';
@@ -50,14 +56,10 @@ export async function POST(
   let platformFeeRate = 0.02;
 
   if (freelancePrice) {
-    // 按散陪价接单
     unitPrice = Number(freelancePrice.price_per_hour);
     identityType = 'freelance';
-    shopId = null;
     platformFeeRate = 0.02;
-    shopFeeRate = 0;
   } else {
-    // 没有散陪价 → 查店铺价
     const { data: userInfo } = await supabaseAdmin
       .from('users')
       .select('shop_id')
@@ -66,23 +68,50 @@ export async function POST(
 
     if (!userInfo?.shop_id) {
       return Response.json(
-        { ok: false, error: '你没设置该游戏档位的价格，且不属于任何店铺，无法接单' },
+        {
+          ok: false,
+          error: '你没设置该游戏档位的价格，且不属于任何店铺，无法接单',
+        },
         { status: 400 }
       );
     }
 
-    const { data: shopPrice } = await supabaseAdmin
+    // 2. 查店铺价
+    let spq = supabaseAdmin
       .from('shop_prices')
       .select('price_per_hour')
       .eq('shop_id', userInfo.shop_id)
       .eq('game_id', order.game_id)
       .eq('tier', order.tier)
-      .eq('is_active', true)
-      .maybeSingle();
+      .eq('is_active', true);
+
+    if (bossRank) {
+      spq = spq.eq('boss_rank', bossRank);
+    }
+
+    let { data: shopPrice } = await spq.maybeSingle();
+
+    // 如果精确匹配不到，尝试"任意"档位
+    if (!shopPrice) {
+      const { data: fallback } = await supabaseAdmin
+        .from('shop_prices')
+        .select('price_per_hour')
+        .eq('shop_id', userInfo.shop_id)
+        .eq('game_id', order.game_id)
+        .eq('tier', order.tier)
+        .eq('boss_rank', '任意')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      shopPrice = fallback;
+    }
 
     if (!shopPrice) {
       return Response.json(
-        { ok: false, error: '你没设置散陪价，且店铺没设置该档位价格，无法接单' },
+        {
+          ok: false,
+          error: `店铺没设置「${order.game_name}·${order.tier}·${bossRank || '通用'}」的价格，无法接单`,
+        },
         { status: 400 }
       );
     }
@@ -92,7 +121,6 @@ export async function POST(
     shopId = userInfo.shop_id;
     platformFeeRate = 0.01;
 
-    // 店铺抽成（如果 shop_commissions 表有对应档位设置）
     const { data: commission } = await supabaseAdmin
       .from('shop_commissions')
       .select('rate')
@@ -100,16 +128,14 @@ export async function POST(
       .eq('tier', order.tier)
       .maybeSingle();
 
-    shopFeeRate = commission ? Number(commission.rate) : 0.15; // 默认 15%
+    shopFeeRate = commission ? Number(commission.rate) : 0.15;
   }
 
-  // 3. 计算金额
   const baseAmount = unitPrice * Number(order.duration_hours);
   const platformFee = baseAmount * platformFeeRate;
   const shopFee = baseAmount * shopFeeRate;
   const playerIncome = baseAmount - platformFee - shopFee;
 
-  // 4. 检查会员余额
   const { data: wallet } = await supabaseAdmin
     .from('wallets')
     .select('balance')
@@ -129,7 +155,6 @@ export async function POST(
 
   const newBalance = currentBalance - baseAmount;
 
-  // 5. 原子更新订单
   const { data: updated, error } = await supabaseAdmin
     .from('orders')
     .update({
@@ -160,7 +185,6 @@ export async function POST(
     );
   }
 
-  // 6. 扣款 + 记流水
   await supabaseAdmin
     .from('wallets')
     .update({ balance: newBalance, updated_at: new Date().toISOString() })
@@ -175,7 +199,6 @@ export async function POST(
     description: `订单 ${order.order_no} 已接单扣款`,
   });
 
-  // 7. 陪玩状态改为 busy（心跳兼容，暂时保留）
   await supabaseAdmin
     .from('players')
     .update({ status: 'busy', last_active_at: new Date().toISOString() })
