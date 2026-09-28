@@ -208,3 +208,60 @@ export async function fetchMyTransactions(): Promise<WalletTransaction[]> {
   if (!data.ok) return [];
   return data.transactions;
 }
+
+// ============================================================
+// 评价
+// ============================================================
+export type Review = {
+  id: number;
+  order_id: number;
+  from_user_id: number;
+  from_role: string;
+  from_name: string;
+  to_user_id: number;
+  to_role: string;
+  to_name: string;
+  rating: number;
+  tags: string[];
+  content: string | null;
+  is_anonymous: boolean;
+  created_at: string;
+};
+
+export async function submitReview(payload: {
+  orderId: number;
+  rating: number;
+  content?: string;
+  tags?: string[];
+  isAnonymous?: boolean;
+}): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch('/api/reviews', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  return data.ok ? { ok: true } : { ok: false, error: data.error };
+}
+
+export async function fetchOrderReviews(
+  orderId: number
+): Promise<{ reviews: Review[]; myReview: Review | null }> {
+  const res = await fetch(`/api/reviews/order/${orderId}`, { cache: 'no-store' });
+  const data = await res.json();
+  if (!data.ok) return { reviews: [], myReview: null };
+  return { reviews: data.reviews || [], myReview: data.myReview || null };
+}
+
+export async function fetchPlayerReviews(
+  userId: number
+): Promise<{ reviews: Review[]; total: number; average: number }> {
+  const res = await fetch(`/api/reviews/player/${userId}`, { cache: 'no-store' });
+  const data = await res.json();
+  if (!data.ok) return { reviews: [], total: 0, average: 0 };
+  return {
+    reviews: data.reviews || [],
+    total: data.total || 0,
+    average: data.average || 0,
+  };
+}

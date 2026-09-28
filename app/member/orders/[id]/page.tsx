@@ -7,20 +7,29 @@ import {
   fetchOrder,
   cancelOrder,
   confirmOrder,
+  fetchOrderReviews,
   ORDER_STATUS_TEXT,
   ORDER_STATUS_COLOR,
   type Order,
+  type Review,
 } from '@/lib/order';
+import ReviewModal from '@/components/ReviewModal';
 
 export default function MemberOrderDetailPage() {
   const params = useParams();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
+  const [myReview, setMyReview] = useState<Review | null>(null);
+  const [showReview, setShowReview] = useState(false);
 
   async function load() {
-    const o = await fetchOrder(Number(params.id));
+    const [o, r] = await Promise.all([
+      fetchOrder(Number(params.id)),
+      fetchOrderReviews(Number(params.id)),
+    ]);
     setOrder(o);
+    setMyReview(r.myReview);
     setLoading(false);
   }
 
@@ -66,6 +75,7 @@ export default function MemberOrderDetailPage() {
   const isPendingPrice = order.final_amount === 0;
   const canCancel = ['pending_player', 'pooling'].includes(order.status);
   const canConfirm = order.status === 'finished';
+  const canReview = order.status === 'completed' && !myReview;
 
   return (
     <>
@@ -149,6 +159,37 @@ export default function MemberOrderDetailPage() {
         </div>
       </div>
 
+      {myReview && (
+        <div className="member-detail-card">
+          <div className="member-section-title" style={{ marginBottom: '0.8rem' }}>
+            我的评价
+          </div>
+          <div className="review-display">
+            <div className="review-display-stars">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <span key={n} className={n <= myReview.rating ? 'active' : ''}>
+                  ★
+                </span>
+              ))}
+            </div>
+            {myReview.tags && myReview.tags.length > 0 && (
+              <div className="review-tags" style={{ marginTop: '0.6rem', marginBottom: '0.6rem' }}>
+                {myReview.tags.map((t) => (
+                  <span key={t} className="review-tag active" style={{ cursor: 'default' }}>
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
+            {myReview.content && (
+              <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)', lineHeight: 1.7 }}>
+                {myReview.content}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="member-detail-actions">
         <button
           className="member-btn-ghost"
@@ -160,10 +201,7 @@ export default function MemberOrderDetailPage() {
         {canCancel && (
           <button
             className="member-btn-ghost"
-            style={{
-              borderColor: 'rgba(220,38,38,0.4)',
-              color: '#f87171',
-            }}
+            style={{ borderColor: 'rgba(220,38,38,0.4)', color: '#f87171' }}
             onClick={handleCancel}
             disabled={working}
           >
@@ -172,15 +210,31 @@ export default function MemberOrderDetailPage() {
         )}
 
         {canConfirm && (
-          <button
-            className="member-btn-primary"
-            onClick={handleConfirm}
-            disabled={working}
-          >
+          <button className="member-btn-primary" onClick={handleConfirm} disabled={working}>
             {working ? '处理中…' : '✅ 确认完成'}
           </button>
         )}
+
+        {canReview && (
+          <button className="member-btn-primary" onClick={() => setShowReview(true)}>
+            ⭐ 评价陪玩
+          </button>
+        )}
       </div>
+
+      {showReview && order.player_name && (
+        <ReviewModal
+          orderId={order.id}
+          toName={order.player_name}
+          toRole="player"
+          onClose={() => setShowReview(false)}
+          onSuccess={() => {
+            setShowReview(false);
+            alert('评价成功！');
+            load();
+          }}
+        />
+      )}
     </>
   );
 }

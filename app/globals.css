@@ -3463,3 +3463,120 @@ button {
   flex: 1;
   padding: 0.6rem;
 }
+
+/* ============================================================
+   评价弹窗
+   ============================================================ */
+.review-modal {
+  background: #16161f;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1.6rem 1.5rem;
+  width: 100%;
+  max-width: 26rem;
+}
+
+.review-modal-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 0.3rem;
+}
+
+.review-modal-sub {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 1.2rem;
+}
+
+.review-stars {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 1.2rem;
+}
+
+.review-star {
+  font-size: 1.8rem;
+  color: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  transition: color 0.15s, transform 0.15s;
+}
+
+.review-star:hover {
+  transform: scale(1.1);
+}
+
+.review-star.active {
+  color: #FBBF24;
+}
+
+.review-star-label {
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+  color: #FBBF24;
+  font-weight: 700;
+}
+
+.review-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.review-tag {
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.review-tag:hover {
+  border-color: #FF7A00;
+  color: #FF7A00;
+}
+
+.review-tag.active {
+  background: rgba(255, 122, 0, 0.2);
+  border-color: #FF7A00;
+  color: #FF7A00;
+  font-weight: 700;
+}
+
+.review-textarea {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+  margin-bottom: 0.8rem;
+}
+
+.review-textarea:focus {
+  border-color: #FF7A00;
+  box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.15);
+}
+
+.review-anon {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
