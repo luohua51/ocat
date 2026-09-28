@@ -89,9 +89,6 @@ export async function POST(
     return Response.json({ ok: false, error: error?.message || '撤销失败' }, { status: 500 });
   }
 
-  return Response.json({ ok: true, order: updated });
-}
-
   // 如果已经接了单，撤销后陪玩释放回 online
   if (order.player_id) {
     await supabaseAdmin
@@ -99,3 +96,6 @@ export async function POST(
       .update({ status: 'online', last_active_at: new Date().toISOString() })
       .eq('id', order.player_id);
   }
+
+  return Response.json({ ok: true, order: updated });
+}
