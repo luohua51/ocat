@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchCurrentUser, logout, type User } from '@/lib/auth';
 
 const MENU = [
@@ -21,46 +21,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const verifiedRef = useRef(false);
 
+  // 只拉一次用户信息，不跳转
   useEffect(() => {
-    if (verifiedRef.current) return;
-    verifiedRef.current = true;
-
-    let cancelled = false;
-
-    async function init() {
-      const u = await fetchCurrentUser();
-      if (cancelled) return;
-
-      if (!u) {
-        router.replace('/login');
-        return;
-      }
-      if (u.role !== 'super_admin' && u.role !== 'admin') {
-        router.replace('/login');
-        return;
-      }
-
-      setUser(u);
-      setLoading(false);
-    }
-
-    init();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchCurrentUser().then((u) => {
+      if (u) setUser(u);
+    });
   }, []);
 
   async function handleLogout() {
     await logout();
     router.push('/');
-  }
-
-  if (loading || !user) {
-    return <div style={{ color: '#fff', padding: '2rem', textAlign: 'center' }}>加载中…</div>;
   }
 
   return (
@@ -86,7 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
         <div className="admin-user">
-          <div className="admin-user-name">{user.nickname}</div>
+          <div className="admin-user-name">{user?.nickname || '未登录'}</div>
           <button className="admin-logout" onClick={handleLogout}>
             退出登录
           </button>

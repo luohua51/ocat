@@ -14,6 +14,7 @@ type Shop = {
 export default function AdminShopsPage() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -21,54 +22,88 @@ export default function AdminShopsPage() {
   const [description, setDescription] = useState('');
   const [adminName, setAdminName] = useState('');
   const [adminAccount, setAdminAccount] = useState('');
-  const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
-      const res = await fetch('/api/shops', { cache: 'no-store' });
-      const data = await res.json();
-      setShops(data.ok ? data.shops : []);
-      setLoading(false);
+      try {
+        const res = await fetch('/api/shops', { cache: 'no-store' });
+
+        // 关键：如果状态码不是 200，直接报错，不跳转
+        if (!res.ok) {
+          if (!cancelled) {
+            setError(`加载失败：${res.status}`);
+            setLoading(false);
+          }
+          return;
+        }
+
+        const data = await res.json();
+        if (!cancelled) {
+          setShops(data.ok ? data.shops : []);
+          setLoading(false);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setError(err?.message || '网络错误');
+          setLoading(false);
+        }
+      }
     }
+
     load();
+    return () => {
+      cancelled = true;
+    };
   }, [refreshKey]);
 
   async function handleCreate() {
-    setError('');
-    if (!name.trim()) return setError('请输入店铺名');
-    if (!adminName.trim()) return setError('请输入店长昵称');
-    if (!adminAccount.trim()) return setError('请输入店长账号');
+    setFormError('');
+    if (!name.trim()) return setFormError('请输入店铺名');
+    if (!adminName.trim()) return setFormError('请输入店长昵称');
+    if (!adminAccount.trim()) return setFormError('请输入店长账号');
 
     setSubmitting(true);
-    const res = await fetch('/api/shops', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description, adminName, adminAccount }),
-    });
-    const data = await res.json();
-    setSubmitting(false);
+    try {
+      const res = await fetch('/api/shops', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, description, adminName, adminAccount }),
+      });
+      const data = await res.json();
+      setSubmitting(false);
 
-    if (!data.ok) return setError(data.error || '创建失败');
+      if (!data.ok) return setFormError(data.error || '创建失败');
 
-    alert(`店铺创建成功！\n店长账号：${adminAccount}\n初始密码：123456`);
-    setName('');
-    setDescription('');
-    setAdminName('');
-    setAdminAccount('');
-    setShowCreate(false);
-    setRefreshKey((k) => k + 1);
+      alert(`店铺创建成功！\n店长账号：${adminAccount}\n初始密码：123456`);
+      setName('');
+      setDescription('');
+      setAdminName('');
+      setAdminAccount('');
+      setShowCreate(false);
+      setRefreshKey((k) => k + 1);
+    } catch (err: any) {
+      setSubmitting(false);
+      setFormError(err?.message || '网络错误');
+    }
   }
 
   async function handleResetPwd(userId: number, nickname: string) {
     if (!confirm(`重置「${nickname}」密码为 123456？`)) return;
-    const res = await fetch('/api/admin/reset-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
-    });
-    const data = await res.json();
-    alert(data.ok ? '已重置' : data.error || '失败');
+    try {
+      const res = await fetch('/api/admin/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      alert(data.ok ? '已重置' : data.error || '失败');
+    } catch (err: any) {
+      alert(err?.message || '网络错误');
+    }
   }
 
   return (
@@ -86,6 +121,21 @@ export default function AdminShopsPage() {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div
+          style={{
+            background: 'rgba(220,38,38,0.1)',
+            border: '1px solid rgba(220,38,38,0.4)',
+            color: '#f87171',
+            padding: '1rem',
+            borderRadius: '0.7rem',
+            marginBottom: '1rem',
+          }}
+        >
+          查询错误：{error}
+        </div>
+      )}
 
       {showCreate && (
         <div className="admin-create-card">
@@ -108,14 +158,11 @@ export default function AdminShopsPage() {
               <input type="text" placeholder="如：cmmxingchen" value={adminAccount} onChange={(e) => setAdminAccount(e.target.value)} />
             </div>
           </div>
-          {error && <div className="admin-form-error">{error}</div>}
+          {formError && <div className="admin-form-error">{formError}</div>}
           <div className="admin-form-actions">
             <button className="admin-btn-primary" onClick={handleCreate} disabled={submitting}>
               {submitting ? '创建中…' : '确认创建'}
             </button>
-          </div>
-          <div className="admin-note" style={{ marginTop: '0.8rem' }}>
-            创建店铺时同时创建店长账号，初始密码 <b>123456</b>，首次登录必须修改。
           </div>
         </div>
       )}
@@ -134,7 +181,13 @@ export default function AdminShopsPage() {
             </tr>
           </thead>
           <tbody>
-            {shops.length === 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.4)' }}>
+                  加载中…
+                </td>
+              </tr>
+            ) : shops.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.4)' }}>
                   暂无店铺
