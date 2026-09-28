@@ -1,7 +1,11 @@
 'use client';
 
+// ============================================================
+// 类型
+// ============================================================
 export type Conversation = {
   id: number;
+  order_id: number;
   member_user_id: number;
   member_name: string;
   player_user_id: number;
@@ -9,7 +13,6 @@ export type Conversation = {
   last_message: string | null;
   last_message_at: string | null;
   created_at: string;
-  // 可选：未读数
   unreadCount?: number;
 };
 
@@ -27,16 +30,15 @@ export type Message = {
 };
 
 // ============================================================
-// 获取或创建会话
+// 获取或创建会话（必须传 orderId）
 // ============================================================
 export async function getOrCreateConversation(params: {
-  otherUserId?: number;
-  orderId?: number;
+  orderId: number;
 }): Promise<{ ok: boolean; conversation?: Conversation; error?: string }> {
   const res = await fetch('/api/chat/conversations', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
+    body: JSON.stringify({ orderId: params.orderId }),
   });
   const data = await res.json();
   return data.ok
@@ -59,13 +61,20 @@ export async function fetchConversations(): Promise<Conversation[]> {
 // ============================================================
 export async function fetchConversation(
   id: number
-): Promise<{ conversation: Conversation | null; messages: Message[] }> {
+): Promise<{
+  conversation: Conversation | null;
+  messages: Message[];
+  canSend: boolean;
+}> {
   const res = await fetch('/api/chat/conversations/' + id, { cache: 'no-store' });
   const data = await res.json();
-  if (!data.ok) return { conversation: null, messages: [] };
+  if (!data.ok) {
+    return { conversation: null, messages: [], canSend: false };
+  }
   return {
     conversation: data.conversation,
     messages: data.messages || [],
+    canSend: data.canSend !== false,
   };
 }
 
@@ -78,15 +87,39 @@ export async function sendMessage(params: {
   type?: 'text' | 'order_card';
   orderId?: number;
 }): Promise<{ ok: boolean; message?: Message; error?: string }> {
-  const res = await fetch(`/api/chat/conversations/${params.conversationId}/messages`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      content: params.content,
-      type: params.type || 'text',
-      orderId: params.orderId,
-    }),
-  });
+  const res = await fetch(
+    `/api/chat/conversations/${params.conversationId}/messages`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: params.content,
+        type: params.type || 'text',
+        orderId: params.orderId,
+      }),
+    }
+  );
   const data = await res.json();
-  return data.ok ? { ok: true, message: data.message } : { ok: false, error: data.error };
+  return data.ok
+    ? { ok: true, message: data.message }
+    : { ok: false, error: data.error };
+}
+
+// ============================================================
+// 拉新消息（轮询用）
+// ============================================================
+export async function fetchNewMessages(
+  conversationId: number,
+  sinceId: number
+): Promise<{ messages: Message[]; canSend: boolean }> {
+  const res = await fetch(
+    `/api/chat/conversations/${conversationId}/messages?since=${sinceId}`,
+    { cache: 'no-store' }
+  );
+  const data = await res.json();
+  if (!data.ok) return { messages: [], canSend: true };
+  return {
+    messages: data.messages || [],
+    canSend: data.canSend !== false,
+  };
 }

@@ -24,23 +24,15 @@ export default function PlayerHallPage() {
   }, []);
 
   async function handleAccept(order: Order) {
-    if (
-      !confirm(
-        `确认接单？\n${order.game_name} · ${order.tier} · ${order.duration_hours}h\n接单后请尽快联系老板`
-      )
-    ) {
-      return;
-    }
+    if (!confirm(`确认接单？\n${order.game_name} · ${order.tier} · ${order.duration_hours}h`)) return;
     setAccepting(order.id);
     const result = await acceptOrder(order.id);
     setAccepting(null);
-
     if (!result.ok) {
       alert(result.error || '接单失败');
       load();
       return;
     }
-
     alert('接单成功！');
     router.push('/player/orders/' + order.id);
   }
@@ -54,7 +46,6 @@ export default function PlayerHallPage() {
       alert(result.error || '无法打开会话');
       return;
     }
-
     router.push('/player/chat/' + result.conversation.id);
   }
 
@@ -80,10 +71,7 @@ export default function PlayerHallPage() {
                   <span className="player-hall-game">{o.game_name}</span>
                   <span className="player-hall-tier">{o.tier}</span>
                 </div>
-                <div
-                  className="player-hall-amount"
-                  style={{ color: '#818cf8', fontSize: '0.95rem' }}
-                >
+                <div className="player-hall-amount" style={{ color: '#818cf8', fontSize: '0.95rem' }}>
                   价格待定
                 </div>
               </div>
@@ -92,9 +80,7 @@ export default function PlayerHallPage() {
                 <div>老板：{o.member_name}</div>
                 <div>段位：{o.boss_rank || '未填'}</div>
                 <div>时长：{o.duration_hours} 小时</div>
-                <div>
-                  身份：{o.identity_type === 'freelance' ? '散陪单' : '店铺单'}
-                </div>
+                <div>身份：{o.identity_type === 'freelance' ? '散陪单' : '店铺单'}</div>
               </div>
 
               {o.remark && (
@@ -112,21 +98,11 @@ export default function PlayerHallPage() {
                 </div>
               )}
 
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr 1fr',
-                  gap: '0.5rem',
-                }}
-              >
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                 <Link
                   href={`/player/orders/${o.id}`}
                   className="player-btn-ghost"
-                  style={{
-                    textAlign: 'center',
-                    textDecoration: 'none',
-                    padding: '0.7rem',
-                  }}
+                  style={{ textAlign: 'center', textDecoration: 'none', padding: '0.7rem' }}
                 >
                   查看详情
                 </Link>
@@ -134,11 +110,7 @@ export default function PlayerHallPage() {
                   className="player-btn-ghost"
                   onClick={() => handleChat(o)}
                   disabled={chatting === o.id}
-                  style={{
-                    padding: '0.7rem',
-                    borderColor: 'rgba(99,102,241,0.4)',
-                    color: '#818cf8',
-                  }}
+                  style={{ padding: '0.7rem', borderColor: 'rgba(99,102,241,0.4)', color: '#818cf8' }}
                 >
                   {chatting === o.id ? '打开中…' : '💬 联系老板'}
                 </button>
@@ -157,9 +129,7 @@ export default function PlayerHallPage() {
       )}
 
       <div className="player-note" style={{ marginTop: '1.5rem' }}>
-        💡 接单前请确保已设置该游戏档位的散陪价，否则无法接单。
-        <br />
-        接单后订单进入「已锁单」状态，请尽快联系老板开始服务。
+        💡 抢单池中，所有陪玩都能联系老板。一旦有人接单，其他陪玩无法继续发消息。
       </div>
     </>
   );

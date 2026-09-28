@@ -4,7 +4,7 @@ import { getSessionUser } from '@/lib/auth-server';
 export const dynamic = 'force-dynamic';
 
 // ============================================================
-// GET /api/chat/conversations  会话列表
+// GET 会话列表
 // ============================================================
 export async function GET() {
   if (!supabaseAdmin) {
@@ -27,7 +27,6 @@ export async function GET() {
 
   if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
 
-  // 统计每个会话的未读数
   const withUnread = await Promise.all(
     (conversations || []).map(async (c) => {
       const { count } = await supabaseAdmin!
@@ -36,7 +35,6 @@ export async function GET() {
         .eq('conversation_id', c.id)
         .eq('is_read', false)
         .neq('sender_id', me.id);
-
       return { ...c, unreadCount: count || 0 };
     })
   );
@@ -45,8 +43,7 @@ export async function GET() {
 }
 
 // ============================================================
-// POST /api/chat/conversations  获取或创建会话
-// 参数：{ otherUserId } 或 { orderId }
+// POST 获取或创建会话（必须传 orderId）
 // ============================================================
 export async function POST(req: Request) {
   if (!supabaseAdmin) {
@@ -60,90 +57,80 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  let otherUserId: number | null = null;
-  let otherName: string | null = null;
-
-  // 如果传了 orderId，从订单推导对方
-  if (body.orderId) {
-    const orderId = Number(body.orderId);
-    const { data: order } = await supabaseAdmin
-      .from('orders')
-      .select('*')
-      .eq('id', orderId)
-      .maybeSingle();
-
-    if (!order) {
-      return Response.json({ ok: false, error: '订单不存在' }, { status: 404 });
-    }
-
-    if (me.role === 'member') {
-      if (order.member_id !== me.id) {
-        return Response.json({ ok: false, error: '不是你的订单' }, { status: 403 });
-      }
-      if (!order.player_id) {
-        return Response.json({ ok: false, error: '订单还没接单，暂无陪玩' }, { status: 400 });
-      }
-      // 找陪玩的 user_id
-      const { data: playerUser } = await supabaseAdmin
-        .from('users')
-        .select('id, nickname')
-        .eq('player_id', order.player_id)
-        .maybeSingle();
-      if (!playerUser) {
-        return Response.json({ ok: false, error: '陪玩账号不存在' }, { status: 404 });
-      }
-      otherUserId = playerUser.id;
-      otherName = playerUser.nickname;
-    } else {
-      // 陪玩
-      if (order.player_id !== me.playerId) {
-        return Response.json({ ok: false, error: '不是你的订单' }, { status: 403 });
-      }
-      otherUserId = order.member_id;
-      otherName = order.member_name;
-    }
-  } else if (body.otherUserId) {
-    // 直接指定对方 user id
-    otherUserId = Number(body.otherUserId);
-    const { data: otherUser } = await supabaseAdmin
-      .from('users')
-      .select('id, nickname, role')
-      .eq('id', otherUserId)
-      .maybeSingle();
-    if (!otherUser) {
-      return Response.json({ ok: false, error: '用户不存在' }, { status: 404 });
-    }
-    otherName = otherUser.nickname;
-  } else {
-    return Response.json({ ok: false, error: '缺少参数' }, { status: 400 });
+  const orderId = Number(body.orderId);
+  if (!orderId) {
+    return Response.json({ ok: false, error: '缺少订单 ID' }, { status: 400 });
   }
 
-  if (!otherUserId || !otherName) {
-    return Response.json({ ok: false, error: '无法确定对方' }, { status: 400 });
+  const { data: order } = await supabaseAdmin
+    .from('orders')
+    .select('*')
+    .eq('id', orderId)
+    .maybeSingle();
+
+  if (!order) {
+    return Response.json({ ok: false, error: '订单不存在' }, { status: 404 });
   }
 
-  // 确定 member_user_id 和 player_user_id
   let memberUserId: number;
   let memberName: string;
   let playerUserId: number;
   let playerName: string;
 
   if (me.role === 'member') {
-    memberUserId = me.id;
-    memberName = me.nickname;
-    playerUserId = otherUserId;
-    playerName = otherName;
+    // 会员发起：订单必须是自己的
+    if (order.member_id !== me.id) {
+      return Response.json({ ok: false, error: '不是你的订单' }, { status: 403 });
+    }
+    // 必须有陪玩接了（或指定）
+    if (!order.player_id) {
+      return Response.json(
+        { ok: false, error: '订单还没接单，暂无陪玩' },
+        { status: 400 }
+      );
+    }
+    const { data: playerUser } = await supabaseAdmin
+      .from('users')
+      .select('id, nickname')
+      .eq('player_id', order.player_id)
+      .maybeSingle();
+    if (!playerUser) {
+      return Response.json({ ok: false, error: '陪玩账号不存在' }, { status: 404 });
+    }
+    memberUserId = order.member_id;
+    memberName = order.member_name;
+    playerUserId = playerUser.id;
+    playerName = playerUser.nickname;
   } else {
-    memberUserId = otherUserId;
-    memberName = otherName;
+    // 陪玩发起
+    // 1. 如果订单已锁单，只有接单陪玩能聊
+    if (order.player_id && order.player_id !== me.playerId) {
+      return Response.json(
+        { ok: false, error: '该订单已被其他陪玩接走，无法联系' },
+        { status: 403 }
+      );
+    }
+    // 2. 订单必须是 pooling 或 已被自己接
+    if (
+      order.status !== 'pooling' &&
+      order.player_id !== me.playerId
+    ) {
+      return Response.json(
+        { ok: false, error: '该订单当前不可联系' },
+        { status: 400 }
+      );
+    }
+    memberUserId = order.member_id;
+    memberName = order.member_name;
     playerUserId = me.id;
     playerName = me.nickname;
   }
 
-  // 查找已存在的会话
+  // 查找已有会话
   const { data: existing } = await supabaseAdmin
     .from('conversations')
     .select('*')
+    .eq('order_id', orderId)
     .eq('member_user_id', memberUserId)
     .eq('player_user_id', playerUserId)
     .maybeSingle();
@@ -156,6 +143,7 @@ export async function POST(req: Request) {
   const { data: created, error } = await supabaseAdmin
     .from('conversations')
     .insert({
+      order_id: orderId,
       member_user_id: memberUserId,
       member_name: memberName,
       player_user_id: playerUserId,
@@ -165,7 +153,10 @@ export async function POST(req: Request) {
     .single();
 
   if (error || !created) {
-    return Response.json({ ok: false, error: error?.message || '创建会话失败' }, { status: 500 });
+    return Response.json(
+      { ok: false, error: error?.message || '创建会话失败' },
+      { status: 500 }
+    );
   }
 
   return Response.json({ ok: true, conversation: created });

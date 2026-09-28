@@ -4,8 +4,7 @@ import { getSessionUser } from '@/lib/auth-server';
 export const dynamic = 'force-dynamic';
 
 // ============================================================
-// GET 拉新消息（轮询用）
-// 参数：?since=<message_id>
+// GET 拉消息
 // ============================================================
 export async function GET(
   req: Request,
@@ -45,13 +44,10 @@ export async function GET(
     .order('created_at', { ascending: true })
     .limit(50);
 
-  if (since > 0) {
-    q = q.gt('id', since);
-  }
+  if (since > 0) q = q.gt('id', since);
 
   const { data } = await q;
 
-  // 标记已读
   await supabaseAdmin
     .from('messages')
     .update({ is_read: true })
@@ -59,7 +55,21 @@ export async function GET(
     .eq('is_read', false)
     .neq('sender_id', me.id);
 
-  return Response.json({ ok: true, messages: data || [] });
+  // 返回可发送状态
+  let canSend = true;
+  if (me.role === 'player') {
+    const { data: order } = await supabaseAdmin
+      .from('orders')
+      .select('status, player_id')
+      .eq('id', conv.order_id)
+      .maybeSingle();
+
+    if (order && order.player_id && order.player_id !== me.playerId) {
+      canSend = false;
+    }
+  }
+
+  return Response.json({ ok: true, messages: data || [], canSend });
 }
 
 // ============================================================
@@ -93,6 +103,22 @@ export async function POST(
     return Response.json({ ok: false, error: '无权操作' }, { status: 403 });
   }
 
+  // 锁单检查
+  if (me.role === 'player') {
+    const { data: order } = await supabaseAdmin
+      .from('orders')
+      .select('status, player_id')
+      .eq('id', conv.order_id)
+      .maybeSingle();
+
+    if (order && order.player_id && order.player_id !== me.playerId) {
+      return Response.json(
+        { ok: false, error: '该订单已被其他陪玩接走，无法继续发送消息' },
+        { status: 403 }
+      );
+    }
+  }
+
   const body = await req.json();
   const content = String(body.content || '').trim();
   const type = String(body.type || 'text');
@@ -118,11 +144,14 @@ export async function POST(
     .single();
 
   if (error || !created) {
-    return Response.json({ ok: false, error: error?.message || '发送失败' }, { status: 500 });
+    return Response.json(
+      { ok: false, error: error?.message || '发送失败' },
+      { status: 500 }
+    );
   }
 
-  // 更新会话的最后消息
-  const preview = type === 'order_card' ? '[订单卡片]' : (content.slice(0, 50) || '');
+  const preview =
+    type === 'order_card' ? '[订单卡片]' : content.slice(0, 50) || '';
 
   await supabaseAdmin
     .from('conversations')
