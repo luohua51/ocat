@@ -3949,3 +3949,40 @@ button {
   font-size: 0.78rem;
   color: rgba(255, 255, 255, 0.5);
 }
+
+/* ============================================================
+   侧边栏：消息未读红点
+   ============================================================ */
+.member-nav-item,
+.player-nav-item {
+  position: relative;
+}
+
+.member-nav-label,
+.player-nav-label {
+  flex: 1;
+}
+
+.member-nav-badge,
+.player-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(22, 22, 31, 0.9);
+}
+
+.member-nav-item.active .member-nav-badge,
+.player-nav-item.active .player-nav-badge {
+  background: #fff;
+  color: #FF7A00;
+}
