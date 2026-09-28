@@ -25,7 +25,7 @@ export default function PlayersPage() {
     return true;
   });
 
-  const list = sortPlayers(filtered as any);
+  const list = sortPlayers(filtered);
 
   return (
     <>
@@ -85,7 +85,14 @@ export default function PlayersPage() {
                   {p.avatar ? <img src={p.avatar} alt={p.name} /> : p.name.charAt(0)}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.4rem',
+                  }}
+                >
                   <div className="name">{p.name}</div>
                   <span
                     style={{
@@ -94,7 +101,8 @@ export default function PlayersPage() {
                       color: '#fff',
                       padding: '0.15rem 0.5rem',
                       borderRadius: '999px',
-                      background: TIER_COLORS[p.tier as keyof typeof TIER_COLORS] || '#6b7280',
+                      background:
+                        TIER_COLORS[p.tier as keyof typeof TIER_COLORS] || '#6b7280',
                       whiteSpace: 'nowrap',
                     }}
                   >
@@ -105,7 +113,10 @@ export default function PlayersPage() {
                 <div className="meta">
                   {p.games.length > 0 ? p.games.join(' · ') : '暂无游戏'}
                   <br />
-                  {p.shopName}
+                  {p.shopName ? `${p.shopName}认证` : '散陪'}
+                  {p.status === 'online' && ' · 🟢 在线'}
+                  {p.status === 'busy' && ' · 🟠 忙碌'}
+                  {p.status === 'offline' && ' · ⚪ 离线'}
                 </div>
 
                 <div className="price">

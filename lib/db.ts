@@ -10,22 +10,19 @@ export type PlayerDisplay = {
   signature: string;
   weeklyOrders: number;
   rating: number;
-  shopName: string;
+  shopName: string; // 空字符串 = 散陪
+  status: string;   // online / offline / busy
 };
 
-/**
- * 拉取所有公开陪玩（不依赖外键，全部单独查询后 JS 合并）
- */
 export async function fetchPlayers(): Promise<PlayerDisplay[]> {
   if (!supabase) return [];
 
-  // 1. 基础信息
+  // 1. 陪玩基础信息（去掉 active 过滤，所有状态都展示）
   const { data: players, error: pErr } = await supabase
     .from('players')
-    .select('id, name, avatar, tier, weekly_orders, rating')
-    .eq('status', 'active')
+    .select('id, name, avatar, tier, weekly_orders, rating, status')
     .order('id', { ascending: true })
-    .limit(50);
+    .limit(100);
 
   if (pErr || !players || players.length === 0) {
     console.error('players 查询失败:', pErr);
@@ -34,13 +31,13 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
 
   const ids = players.map((p) => p.id);
 
-  // 2. 签名
+  // 2. 资料
   const { data: profiles } = await supabase
     .from('player_profiles')
     .select('player_id, signature')
     .in('player_id', ids);
 
-  // 3. 能力（游戏 + 档位）
+  // 3. 能力
   const { data: capabilities } = await supabase
     .from('player_capabilities')
     .select('player_id, game_id, tier')
@@ -63,7 +60,46 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
     .in('player_id', ids)
     .eq('is_active', true);
 
-  // 5. 组装
+  // 5. 店铺认证
+  const { data: shops } = await supabase
+    .from('shops')
+    .select('id, name')
+    .eq('status', 'active');
+
+  const shopMap = new Map((shops || []).map((s) => [s.id, s.name]));
+
+  // 6. 陪玩 user 关联的店铺 + 认证档位
+  const { data: playerUsers } = await supabase
+    .from('users')
+    .select('player_id, shop_id')
+    .in('player_id', ids)
+    .eq('role', 'player');
+
+  const userShopMap = new Map(
+    (playerUsers || []).map((u: any) => [u.player_id, u.shop_id])
+  );
+
+  // 7. player_shops 认证档位
+  const { data: playerShops } = await supabase
+    .from('player_shops')
+    .select('player_user_id, shop_id, tier')
+    .eq('is_active', true);
+
+  // 按 player_id 反查认证：通过 users 表关联
+  const { data: userRows } = await supabase
+    .from('users')
+    .select('id, player_id')
+    .in('player_id', ids);
+
+  const userIdMap = new Map((userRows || []).map((u) => [u.id, u.player_id]));
+
+  const certMap = new Map<number, { shopId: number; tier: string }>();
+  (playerShops || []).forEach((ps: any) => {
+    const pid = userIdMap.get(ps.player_user_id);
+    if (pid) certMap.set(pid, { shopId: ps.shop_id, tier: ps.tier });
+  });
+
+  // 8. 组装
   return players.map((p) => {
     const prof = (profiles || []).find((x: any) => x.player_id === p.id);
 
@@ -78,17 +114,28 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
       .map((x: any) => x.price_per_hour);
     const minPrice = playerPrices.length > 0 ? Math.min(...playerPrices) : 0;
 
+    // 店铺信息：优先用 player_shops 里的认证店铺
+    let shopName = '';
+    const cert = certMap.get(p.id);
+    if (cert) {
+      shopName = shopMap.get(cert.shopId) || '';
+    } else {
+      const shopId = userShopMap.get(p.id);
+      if (shopId) shopName = shopMap.get(shopId) || '';
+    }
+
     return {
       id: p.id,
       name: p.name,
       avatar: p.avatar || '',
-      tier: p.tier,
+      tier: cert?.tier || p.tier, // 优先用店铺认证的档位
       games: uniqueGames as string[],
       price: minPrice,
       signature: prof?.signature || '',
       weeklyOrders: p.weekly_orders || 0,
       rating: p.rating || 100,
-      shopName: '散陪',
+      shopName,
+      status: p.status || 'offline',
     };
   });
 }

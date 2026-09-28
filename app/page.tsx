@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const players = await fetchPlayers();
-  const sorted = sortPlayers(players).slice(0, 4);
+  const sorted = sortPlayers(players).slice(0, 8);
 
   return (
     <>
@@ -65,7 +65,10 @@ export default async function HomePage() {
               <div className="meta">
                 {p.games.length > 0 ? p.games.join(' · ') : '暂无游戏'}
                 <br />
-                {p.shopName}
+                {p.shopName ? `${p.shopName}认证` : '散陪'}
+                {p.status === 'online' && ' · 🟢 在线'}
+                {p.status === 'busy' && ' · 🟠 忙碌'}
+                {p.status === 'offline' && ' · ⚪ 离线'}
               </div>
 
               <div className="price">
