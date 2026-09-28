@@ -153,3 +153,21 @@ export async function deletePrice(
   const data = await res.json();
   return data.ok ? { ok: true } : { ok: false, error: data.error };
 }
+
+async function postAction(orderId: number, action: string) {
+  const res = await fetch(`/api/orders/${orderId}/${action}`, { method: 'POST' });
+  const data = await res.json();
+  return data.ok ? { ok: true, order: data.order } : { ok: false, error: data.error };
+}
+
+export async function startOrder(orderId: number) {
+  return postAction(orderId, 'start');
+}
+
+export async function finishOrder(orderId: number) {
+  return postAction(orderId, 'finish');
+}
+
+export async function confirmOrder(orderId: number) {
+  return postAction(orderId, 'confirm');
+}

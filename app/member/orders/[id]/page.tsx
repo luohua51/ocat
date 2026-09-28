@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   fetchOrder,
   cancelOrder,
+  confirmOrder,
   ORDER_STATUS_TEXT,
   ORDER_STATUS_COLOR,
   type Order,
@@ -13,34 +14,40 @@ import {
 
 export default function MemberOrderDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const [cancelling, setCancelling] = useState(false);
+  const [working, setWorking] = useState(false);
+
+  async function load() {
+    const o = await fetchOrder(Number(params.id));
+    setOrder(o);
+    setLoading(false);
+  }
 
   useEffect(() => {
-    fetchOrder(Number(params.id)).then((o) => {
-      setOrder(o);
-      setLoading(false);
-    });
+    load();
   }, [params.id]);
 
   async function handleCancel() {
     if (!order) return;
     if (!confirm('确定撤销这笔订单？撤销后不可恢复。')) return;
-
-    setCancelling(true);
+    setWorking(true);
     const r = await cancelOrder(order.id);
-    setCancelling(false);
-
-    if (!r.ok) {
-      alert(r.error || '撤销失败');
-      return;
-    }
-
+    setWorking(false);
+    if (!r.ok) return alert(r.error || '撤销失败');
     alert('订单已撤销');
-    const updated = await fetchOrder(order.id);
-    setOrder(updated);
+    load();
+  }
+
+  async function handleConfirm() {
+    if (!order) return;
+    if (!confirm('确认订单已完成？确认后平台将结算给陪玩。')) return;
+    setWorking(true);
+    const r = await confirmOrder(order.id);
+    setWorking(false);
+    if (!r.ok) return alert(r.error || '操作失败');
+    alert('已确认完成');
+    load();
   }
 
   if (loading) return <div className="member-empty">加载中…</div>;
@@ -58,6 +65,7 @@ export default function MemberOrderDetailPage() {
 
   const isPendingPrice = order.final_amount === 0;
   const canCancel = ['pending_player', 'pooling'].includes(order.status);
+  const canConfirm = order.status === 'finished';
 
   return (
     <>
@@ -157,9 +165,19 @@ export default function MemberOrderDetailPage() {
               color: '#f87171',
             }}
             onClick={handleCancel}
-            disabled={cancelling}
+            disabled={working}
           >
-            {cancelling ? '撤销中…' : '撤销订单'}
+            {working ? '处理中…' : '撤销订单'}
+          </button>
+        )}
+
+        {canConfirm && (
+          <button
+            className="member-btn-primary"
+            onClick={handleConfirm}
+            disabled={working}
+          >
+            {working ? '处理中…' : '✅ 确认完成'}
           </button>
         )}
       </div>

@@ -3,19 +3,49 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { fetchOrder, ORDER_STATUS_TEXT, type Order } from '@/lib/order';
+import {
+  fetchOrder,
+  startOrder,
+  finishOrder,
+  ORDER_STATUS_TEXT,
+  type Order,
+} from '@/lib/order';
 
 export default function PlayerOrderDetailPage() {
   const params = useParams();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState(false);
+
+  async function load() {
+    const o = await fetchOrder(Number(params.id));
+    setOrder(o);
+    setLoading(false);
+  }
 
   useEffect(() => {
-    fetchOrder(Number(params.id)).then((o) => {
-      setOrder(o);
-      setLoading(false);
-    });
+    load();
   }, [params.id]);
+
+  async function handleStart() {
+    if (!order) return;
+    if (!confirm('确认开始服务？')) return;
+    setWorking(true);
+    const r = await startOrder(order.id);
+    setWorking(false);
+    if (!r.ok) return alert(r.error || '操作失败');
+    load();
+  }
+
+  async function handleFinish() {
+    if (!order) return;
+    if (!confirm('确认完成服务？完成后等待老板确认。')) return;
+    setWorking(true);
+    const r = await finishOrder(order.id);
+    setWorking(false);
+    if (!r.ok) return alert(r.error || '操作失败');
+    load();
+  }
 
   if (loading) return <div className="player-empty">加载中…</div>;
 
@@ -40,7 +70,10 @@ export default function PlayerOrderDetailPage() {
 
       <div className="player-detail-card">
         <div className="player-detail-status">
-          <span className="player-order-tag" style={{ fontSize: '0.85rem', padding: '0.3rem 0.9rem' }}>
+          <span
+            className="player-order-tag"
+            style={{ fontSize: '0.85rem', padding: '0.3rem 0.9rem' }}
+          >
             {ORDER_STATUS_TEXT[order.status] || order.status}
           </span>
         </div>
@@ -90,6 +123,30 @@ export default function PlayerOrderDetailPage() {
         <button className="player-btn-ghost" onClick={() => alert('聊天功能开发中')}>
           💬 联系老板
         </button>
+
+        {order.status === 'locked' && (
+          <button className="player-btn-primary" onClick={handleStart} disabled={working}>
+            {working ? '处理中…' : '▶ 开始服务'}
+          </button>
+        )}
+
+        {order.status === 'in_service' && (
+          <button className="player-btn-primary" onClick={handleFinish} disabled={working}>
+            {working ? '处理中…' : '✅ 完成服务'}
+          </button>
+        )}
+
+        {order.status === 'finished' && (
+          <button className="player-btn-primary disabled" disabled>
+            等待老板确认
+          </button>
+        )}
+
+        {order.status === 'completed' && (
+          <button className="player-btn-primary disabled" disabled>
+            订单已完成
+          </button>
+        )}
       </div>
     </>
   );
