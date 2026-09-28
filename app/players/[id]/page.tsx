@@ -1,14 +1,114 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { MOCK_PLAYERS, TIER_COLORS } from '@/lib/mock';
+import { supabase } from '@/lib/supabase';
+import { TIER_COLORS } from '@/lib/mock';
 
-export default function PlayerDetailPage({
-  params,
-}: {
+export const dynamic = 'force-dynamic';
+
+type Props = {
   params: { id: string };
-}) {
-  const player = MOCK_PLAYERS.find((p) => p.id === Number(params.id));
+};
+
+export default async function PlayerDetailPage({ params }: Props) {
+  const playerId = Number(params.id);
+  if (!playerId) notFound();
+
+  if (!supabase) {
+    return (
+      <main className="main">
+        <div className="empty">数据库未配置</div>
+      </main>
+    );
+  }
+
+  // 1. 基础信息
+  const { data: player } = await supabase
+    .from('players')
+    .select('id, name, avatar, audio, tier, weekly_orders, rating, status')
+    .eq('id', playerId)
+    .maybeSingle();
+
   if (!player) notFound();
+
+  // 2. 资料
+  const { data: profile } = await supabase
+    .from('player_profiles')
+    .select('signature, description, rank_text, available_time')
+    .eq('player_id', playerId)
+    .maybeSingle();
+
+  // 3. 能力
+  const { data: capabilities } = await supabase
+    .from('player_capabilities')
+    .select('game_id, tier')
+    .eq('player_id', playerId)
+    .eq('is_active', true);
+
+  const gameIds = [...new Set((capabilities || []).map((c: any) => c.game_id))];
+
+  const { data: gamesData } = await supabase
+    .from('games')
+    .select('id, name')
+    .in('id', gameIds.length > 0 ? gameIds : [-1]);
+
+  const gameNames = (capabilities || [])
+    .map((c: any) => (gamesData || []).find((g: any) => g.id === c.game_id)?.name)
+    .filter(Boolean);
+  const uniqueGames = [...new Set(gameNames)];
+
+  // 4. 价格
+  const { data: prices } = await supabase
+    .from('player_prices')
+    .select('price_per_hour')
+    .eq('player_id', playerId)
+    .eq('is_active', true);
+
+  const priceList = (prices || []).map((p: any) => Number(p.price_per_hour));
+  const minPrice = priceList.length > 0 ? Math.min(...priceList) : 0;
+
+  // 5. 店铺认证
+  const { data: playerUser } = await supabase
+    .from('users')
+    .select('id, shop_id')
+    .eq('player_id', playerId)
+    .maybeSingle();
+
+  let shopName = '';
+  let certTier = '';
+
+  if (playerUser) {
+    const { data: cert } = await supabase
+      .from('player_shops')
+      .select('shop_id, tier')
+      .eq('player_user_id', playerUser.id)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (cert) {
+      certTier = cert.tier;
+      const { data: shop } = await supabase
+        .from('shops')
+        .select('name')
+        .eq('id', cert.shop_id)
+        .maybeSingle();
+      shopName = shop?.name || '';
+    } else if (playerUser.shop_id) {
+      const { data: shop } = await supabase
+        .from('shops')
+        .select('name')
+        .eq('id', playerUser.shop_id)
+        .maybeSingle();
+      shopName = shop?.name || '';
+    }
+  }
+
+  const displayTier = certTier || player.tier;
+  const statusText =
+    player.status === 'online'
+      ? '🟢 在线'
+      : player.status === 'busy'
+      ? '🟠 忙碌'
+      : '⚪ 离线';
 
   return (
     <>
@@ -23,7 +123,11 @@ export default function PlayerDetailPage({
       <main className="main">
         <div className="detail-card">
           <div className="detail-avatar">
-            {player.avatar ? <img src={player.avatar} alt={player.name} /> : player.name.charAt(0)}
+            {player.avatar ? (
+              <img src={player.avatar} alt={player.name} />
+            ) : (
+              player.name.charAt(0)
+            )}
           </div>
 
           <div className="detail-name">
@@ -36,68 +140,98 @@ export default function PlayerDetailPage({
                 color: '#fff',
                 padding: '0.2rem 0.7rem',
                 borderRadius: '999px',
-                background: TIER_COLORS[player.tier],
+                background:
+                  TIER_COLORS[displayTier as keyof typeof TIER_COLORS] || '#6b7280',
                 verticalAlign: 'middle',
               }}
             >
-              {player.tier}
+              {displayTier}
             </span>
           </div>
 
           <div className="detail-sub">
-            {player.shopName ? `${player.shopName}.${player.tier}` : '散陪'}
+            {shopName ? `${shopName}认证` : '散陪'} · {statusText}
           </div>
 
           <div className="stat-grid">
             <div className="stat-box" style={{ background: '#FFF3E6' }}>
               <div className="stat-num" style={{ color: '#F97316' }}>
-                {player.weeklyOrders}
+                {player.weekly_orders || 0}
               </div>
               <div className="stat-label">上周接单</div>
             </div>
             <div className="stat-box" style={{ background: '#ECFDF5' }}>
               <div className="stat-num" style={{ color: '#059669' }}>
-                {player.rating}%
+                {player.rating || 100}%
               </div>
               <div className="stat-label">好评率</div>
             </div>
             <div className="stat-box" style={{ background: '#FFFBEB' }}>
               <div className="stat-num" style={{ color: '#D97706' }}>
-                ¥{player.price}
+                {minPrice > 0 ? `¥${minPrice}` : '--'}
               </div>
               <div className="stat-label">最低/时</div>
             </div>
           </div>
 
-          <div className="section">
-            <div className="section-title">可接游戏</div>
-            <div className="tag-row">
-              {player.games.map((g) => (
-                <span key={g} className="tag">
-                  {g}
-                </span>
-              ))}
+          {uniqueGames.length > 0 && (
+            <div className="section">
+              <div className="section-title">可接游戏</div>
+              <div className="tag-row">
+                {uniqueGames.map((g) => (
+                  <span key={g} className="tag">
+                    {g}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="section">
-            <div className="section-title">接单时间</div>
-            <div style={{ color: '#F97316', fontWeight: 600 }}>
-              ⏰ {player.availableTime}
+          {profile?.available_time && (
+            <div className="section">
+              <div className="section-title">接单时间</div>
+              <div style={{ color: '#F97316', fontWeight: 600 }}>
+                ⏰ {profile.available_time}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="section">
-            <div className="section-title">个性签名</div>
-            <div className="detail-text">{player.signature}</div>
-          </div>
+          {profile?.rank_text && (
+            <div className="section">
+              <div className="section-title">段位</div>
+              <div className="detail-text">{profile.rank_text}</div>
+            </div>
+          )}
 
-          <div className="section">
-            <div className="section-title">个人介绍</div>
-            <div className="detail-text">{player.description}</div>
-          </div>
+          {profile?.signature && (
+            <div className="section">
+              <div className="section-title">个性签名</div>
+              <div className="detail-text">{profile.signature}</div>
+            </div>
+          )}
 
-          <Link href={`/login?redirect=/member/create?playerId=${player.id}`} className="book-btn">
+          {profile?.description && (
+            <div className="section">
+              <div className="section-title">个人介绍</div>
+              <div className="detail-text">{profile.description}</div>
+            </div>
+          )}
+
+          {player.audio && (
+            <div className="section">
+              <div className="section-title">语音试听</div>
+              <audio
+                controls
+                src={player.audio}
+                style={{ width: '100%', marginTop: '0.5rem' }}
+              />
+            </div>
+          )}
+
+          <Link
+            href={`/login?redirect=/member/create?playerId=${player.id}`}
+            className="book-btn"
+          >
             🔥 立即预约
           </Link>
         </div>
