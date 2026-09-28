@@ -4198,3 +4198,53 @@ button {
   background: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.5);
 }
+
+/* ============================================================
+   卡片身份标签
+   ============================================================ */
+.card-identities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+}
+
+.card-identities .identity-tag {
+  display: inline-block;
+  border-radius: 999px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.identity-tag {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.identity-tag.shop {
+  background: linear-gradient(135deg, #FFB300, #FF7A00);
+  color: #fff;
+}
+
+.identity-tag.freelance {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+.identity-tag.pending {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.detail-identities {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}

@@ -75,74 +75,53 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
 
     const shopMap = new Map((shops || []).map((s) => [s.id, s.name]));
 
-    // 6. 陪玩 user 表关联（获取 shop_id 和 user.id）
-    const { data: playerUsers } = await supabase
-      .from('users')
-      .select('id, player_id, shop_id')
-      .in('player_id', ids)
-      .eq('role', 'player');
+    // 6. 通过后端 API 拿到 player 和 shop 的关联（避免直连 users 表）
+    //    这里改用 player_shops 直接查询：需要把 player_id 映射到 player_user_id
+    //    简化方案：调一个轻量 API
+    let playerShopRelations: { playerId: number; shopId: number; tier: string }[] = [];
 
-    // 7. player_shops 认证表（如果存在更细的档位）
-    const { data: playerShops } = await supabase
-      .from('player_shops')
-      .select('player_user_id, shop_id, tier')
-      .eq('is_active', true);
+    try {
+      const res = await fetch('/api/public/player-identities', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.ok) {
+        playerShopRelations = data.relations || [];
+      }
+    } catch {
+      // 忽略
+    }
 
-    // 8. 组装
+    // 7. 组装
     return players.map((p) => {
       const prof = (profiles || []).find((x: any) => x.player_id === p.id);
 
-      // 游戏
       const playerGames = (capabilities || [])
         .filter((c: any) => c.player_id === p.id)
         .map((c: any) => (gamesData || []).find((g: any) => g.id === c.game_id)?.name)
         .filter(Boolean);
       const uniqueGames = [...new Set(playerGames)];
 
-      // 价格
       const playerPrices = (prices || [])
         .filter((x: any) => x.player_id === p.id)
         .map((x: any) => Number(x.price_per_hour));
       const minPrice = playerPrices.length > 0 ? Math.min(...playerPrices) : 0;
 
-      // 身份
       const identities: PlayerIdentity[] = [];
 
-      const userInfo = (playerUsers || []).find((u: any) => u.player_id === p.id);
-
-      // 店铺认证：优先用 player_shops 里的，其次用 user.shop_id 兜底
-      if (userInfo) {
-        const certs = (playerShops || []).filter(
-          (ps: any) => ps.player_user_id === userInfo.id
-        );
-
-        if (certs.length > 0) {
-          certs.forEach((c: any) => {
-            const shopName = shopMap.get(c.shop_id);
-            if (shopName) {
-              identities.push({
-                type: 'shop',
-                shopName,
-                tier: c.tier,
-                label: `${shopName}.${c.tier}`,
-              });
-            }
+      // 店铺身份（从后端 API 拿到的 relations）
+      const myCerts = playerShopRelations.filter((r) => r.playerId === p.id);
+      myCerts.forEach((c) => {
+        const shopName = shopMap.get(c.shopId);
+        if (shopName) {
+          identities.push({
+            type: 'shop',
+            shopName,
+            tier: c.tier,
+            label: `${shopName}.${c.tier}`,
           });
-        } else if (userInfo.shop_id) {
-          // 没认证记录，但有归属店铺 → 显示为店铺陪玩，档位用 players.tier
-          const shopName = shopMap.get(userInfo.shop_id);
-          if (shopName) {
-            identities.push({
-              type: 'shop',
-              shopName,
-              tier: p.tier,
-              label: `${shopName}.${p.tier}`,
-            });
-          }
         }
-      }
+      });
 
-      // 散陪身份：有散陪价就算
+      // 散陪身份
       const hasFreelance = (prices || []).some((x: any) => x.player_id === p.id);
       if (hasFreelance) {
         const freelanceTier =
@@ -155,7 +134,6 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
         });
       }
 
-      // 主档位和主店铺
       const mainIdentity = identities[0];
       const mainTier = mainIdentity?.tier || p.tier;
       const mainShopName = mainIdentity?.shopName || '';

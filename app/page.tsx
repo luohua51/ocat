@@ -110,7 +110,6 @@ export default function HomePage() {
                   </span>
                 </div>
 
-                {/* 身份标签 */}
                 {p.identities.length > 0 && (
                   <div className="card-identities">
                     {p.identities.map((idn, i) => (
@@ -129,7 +128,10 @@ export default function HomePage() {
 
                 {p.identities.length === 0 && (
                   <div className="card-identities">
-                    <span className="identity-tag pending" style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem' }}>
+                    <span
+                      className="identity-tag pending"
+                      style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem' }}
+                    >
                       暂未开放接单
                     </span>
                   </div>
@@ -144,7 +146,7 @@ export default function HomePage() {
                 </div>
 
                 <div className="price">
-                  {p.price > 0 ? `¥${p.price}/时起` : '价格待定'}
+                  {p.price > 0 ? `¥${p.price}/时起` : '—'}
                 </div>
 
                 <span className="btn">查看详情</span>
