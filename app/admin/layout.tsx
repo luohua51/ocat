@@ -17,6 +17,8 @@ const MENU = [
   { href: '/admin/settings', label: '平台设置', icon: '⚙️' },
 ];
 
+const CACHE_KEY = 'ocat_user_admin';
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -26,37 +28,53 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     let cancelled = false;
 
-    async function init() {
-      try {
-        const u = await fetchCurrentUser();
-        if (cancelled) return;
-
-        if (!u) {
-          router.replace('/login?redirect=' + pathname);
-          return;
-        }
-
-        // 放宽：super_admin 和 admin 都能进
-        if (u.role !== 'super_admin' && u.role !== 'admin') {
-          router.replace('/login');
-          return;
-        }
-
-        setUser(u);
-        setLoading(false);
-      } catch (err) {
-        console.error('[admin layout] 加载用户失败', err);
-        if (!cancelled) {
+    // 1. 先用缓存渲染
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const u = JSON.parse(cached) as User;
+        if (u.role === 'super_admin' || u.role === 'admin') {
+          setUser(u);
           setLoading(false);
         }
       }
+    } catch {}
+
+    // 2. 再请求真实用户（异步校验）
+    async function verify() {
+      const u = await fetchCurrentUser();
+      if (cancelled) return;
+
+      if (!u) {
+        // 只有明确未登录时才跳
+        sessionStorage.removeItem(CACHE_KEY);
+        router.replace('/login?redirect=' + pathname);
+        return;
+      }
+
+      if (u.role !== 'super_admin' && u.role !== 'admin') {
+        router.replace('/login');
+        return;
+      }
+
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify(u));
+      setUser(u);
+      setLoading(false);
     }
 
-    init();
+    verify();
     return () => {
       cancelled = true;
     };
-  }, [router, pathname]);
+    // 只在首次挂载时校验，切页面不再重复校验
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleLogout() {
+    sessionStorage.removeItem(CACHE_KEY);
+    await logout();
+    router.push('/');
+  }
 
   if (loading || !user) {
     return <div style={{ color: '#fff', padding: '2rem', textAlign: 'center' }}>加载中…</div>;
@@ -86,13 +104,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
         <div className="admin-user">
           <div className="admin-user-name">{user.nickname}</div>
-          <button
-            className="admin-logout"
-            onClick={async () => {
-              await logout();
-              router.push('/');
-            }}
-          >
+          <button className="admin-logout" onClick={handleLogout}>
             退出登录
           </button>
         </div>

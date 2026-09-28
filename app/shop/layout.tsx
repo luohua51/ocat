@@ -12,6 +12,8 @@ const MENU = [
   { href: '/shop/certifications', label: '限定认证', icon: '🏆' },
 ];
 
+const CACHE_KEY = 'ocat_user_shop';
+
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -21,37 +23,50 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     let cancelled = false;
 
-    async function init() {
-      try {
-        const u = await fetchCurrentUser();
-        if (cancelled) return;
-
-        if (!u) {
-          router.replace('/login?redirect=' + pathname);
-          return;
-        }
-
-        // 放宽：shop_admin 和 super_admin 都能进
-        if (u.role !== 'shop_admin' && u.role !== 'super_admin') {
-          router.replace('/login');
-          return;
-        }
-
-        setUser(u);
-        setLoading(false);
-      } catch (err) {
-        console.error('[shop layout] 加载用户失败', err);
-        if (!cancelled) {
+    // 先用缓存
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const u = JSON.parse(cached) as User;
+        if (u.role === 'shop_admin' || u.role === 'super_admin') {
+          setUser(u);
           setLoading(false);
         }
       }
+    } catch {}
+
+    async function verify() {
+      const u = await fetchCurrentUser();
+      if (cancelled) return;
+
+      if (!u) {
+        sessionStorage.removeItem(CACHE_KEY);
+        router.replace('/login?redirect=' + pathname);
+        return;
+      }
+
+      if (u.role !== 'shop_admin' && u.role !== 'super_admin') {
+        router.replace('/login');
+        return;
+      }
+
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify(u));
+      setUser(u);
+      setLoading(false);
     }
 
-    init();
+    verify();
     return () => {
       cancelled = true;
     };
-  }, [router, pathname]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleLogout() {
+    sessionStorage.removeItem(CACHE_KEY);
+    await logout();
+    router.push('/');
+  }
 
   if (loading || !user) {
     return <div style={{ color: '#fff', padding: '2rem', textAlign: 'center' }}>加载中…</div>;
@@ -82,13 +97,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
         <div className="shop-user">
           <div className="shop-user-name">{user.nickname}</div>
           <div className="shop-user-sub">店铺 ID：{user.shopId ?? '-'}</div>
-          <button
-            className="shop-logout"
-            onClick={async () => {
-              await logout();
-              router.push('/');
-            }}
-          >
+          <button className="shop-logout" onClick={handleLogout}>
             退出登录
           </button>
         </div>
