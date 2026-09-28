@@ -15,9 +15,18 @@ export default async function PlayerDetailPage({ params }: Props) {
 
   if (!supabase) {
     return (
-      <main className="main">
-        <div className="empty">数据库未配置</div>
-      </main>
+      <>
+        <nav className="navbar">
+          <div className="brand">🐱 陪玩平台</div>
+          <div className="nav-links">
+            <Link href="/">全部陪玩</Link>
+            <Link href="/login">登录</Link>
+          </div>
+        </nav>
+        <main className="main">
+          <div className="empty">数据库未配置</div>
+        </main>
+      </>
     );
   }
 
@@ -54,55 +63,54 @@ export default async function PlayerDetailPage({ params }: Props) {
   const gameNames = (capabilities || [])
     .map((c: any) => (gamesData || []).find((g: any) => g.id === c.game_id)?.name)
     .filter(Boolean);
-  const uniqueGames = [...new Set(gameNames)];
+  const uniqueGames = [...new Set(gameNames)] as string[];
 
-  // 4. 价格
+  // 4. 散陪价
   const { data: prices } = await supabase
     .from('player_prices')
-    .select('price_per_hour')
+    .select('price_per_hour, tier')
     .eq('player_id', playerId)
     .eq('is_active', true);
 
   const priceList = (prices || []).map((p: any) => Number(p.price_per_hour));
   const minPrice = priceList.length > 0 ? Math.min(...priceList) : 0;
+  const hasFreelance = (prices || []).length > 0;
 
-  // 5. 店铺认证
+  // 5. 店铺认证（可能有多家）
   const { data: playerUser } = await supabase
     .from('users')
     .select('id, shop_id')
     .eq('player_id', playerId)
     .maybeSingle();
 
-  let shopName = '';
-  let certTier = '';
+  const certList: { shopName: string; tier: string; price: number }[] = [];
 
   if (playerUser) {
-    const { data: cert } = await supabase
+    const { data: certs } = await supabase
       .from('player_shops')
       .select('shop_id, tier')
       .eq('player_user_id', playerUser.id)
-      .eq('is_active', true)
-      .maybeSingle();
+      .eq('is_active', true);
 
-    if (cert) {
-      certTier = cert.tier;
-      const { data: shop } = await supabase
-        .from('shops')
-        .select('name')
-        .eq('id', cert.shop_id)
-        .maybeSingle();
-      shopName = shop?.name || '';
-    } else if (playerUser.shop_id) {
-      const { data: shop } = await supabase
-        .from('shops')
-        .select('name')
-        .eq('id', playerUser.shop_id)
-        .maybeSingle();
-      shopName = shop?.name || '';
-    }
+    const shopIds = [...new Set((certs || []).map((c: any) => c.shop_id))];
+
+    const { data: shops } = await supabase
+      .from('shops')
+      .select('id, name')
+      .in('id', shopIds.length > 0 ? shopIds : [-1]);
+
+    (certs || []).forEach((c: any) => {
+      const shop = (shops || []).find((s: any) => s.id === c.shop_id);
+      if (shop) {
+        certList.push({
+          shopName: shop.name,
+          tier: c.tier,
+          price: 0,
+        });
+      }
+    });
   }
 
-  const displayTier = certTier || player.tier;
   const statusText =
     player.status === 'online'
       ? '🟢 在线'
@@ -110,14 +118,19 @@ export default async function PlayerDetailPage({ params }: Props) {
       ? '🟠 忙碌'
       : '⚪ 离线';
 
+  // 主档位（用于显示名字旁边的大标签）
+  const mainTier = certList.length > 0 ? certList[0].tier : player.tier;
+
   return (
     <>
       <nav className="navbar">
         <div className="brand">🐱 陪玩平台</div>
-      <div className="nav-links">
-        <Link href="/">全部陪玩</Link>
-        <Link href="/login">登录</Link>
-      </div>  
+        <div className="nav-links">
+          <Link href="/">全部陪玩</Link>
+          <Link href="/login">登录</Link>
+        </div>
+      </nav>
+
       <main className="main">
         <div className="detail-card">
           <div className="detail-avatar">
@@ -139,16 +152,36 @@ export default async function PlayerDetailPage({ params }: Props) {
                 padding: '0.2rem 0.7rem',
                 borderRadius: '999px',
                 background:
-                  TIER_COLORS[displayTier as keyof typeof TIER_COLORS] || '#6b7280',
+                  TIER_COLORS[mainTier as keyof typeof TIER_COLORS] || '#6b7280',
                 verticalAlign: 'middle',
               }}
             >
-              {displayTier}
+              {mainTier}
             </span>
           </div>
 
-          <div className="detail-sub">
-            {shopName ? `${shopName}认证` : '散陪'} · {statusText}
+          {/* 身份标签：店陪 / 散陪 */}
+          <div className="detail-identities">
+            {certList.length > 0 &&
+              certList.map((c) => (
+                <span key={c.shopName + c.tier} className="identity-tag shop">
+                  {c.shopName}.{c.tier}
+                </span>
+              ))}
+
+            {hasFreelance && (
+              <span className="identity-tag freelance">
+                散陪.{player.tier}
+              </span>
+            )}
+
+            {certList.length === 0 && !hasFreelance && (
+              <span className="identity-tag pending">暂未开放接单</span>
+            )}
+          </div>
+
+          <div className="detail-sub" style={{ marginTop: '0.6rem' }}>
+            {statusText}
           </div>
 
           <div className="stat-grid">

@@ -1,17 +1,25 @@
 import { supabase } from './supabase';
 
+export type PlayerIdentity = {
+  type: 'shop' | 'freelance';
+  shopName: string; // 散陪时为 '散陪'
+  tier: string;
+  label: string;    // 展示用，如 "橙猫猫.金牌" 或 "散陪.技术"
+};
+
 export type PlayerDisplay = {
   id: number;
   name: string;
   avatar: string;
-  tier: string;
+  tier: string;         // 主档位（用于排序和主标签）
   games: string[];
   price: number;
   signature: string;
   weeklyOrders: number;
   rating: number;
-  shopName: string;
+  shopName: string;     // 主身份店铺名（空 = 纯散陪）
   status: string;
+  identities: PlayerIdentity[]; // 所有身份
 };
 
 export async function fetchPlayers(): Promise<PlayerDisplay[]> {
@@ -54,14 +62,14 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
       .select('id, name')
       .in('id', gameIds.length > 0 ? gameIds : [-1]);
 
-    // 4. 价格
+    // 4. 散陪价
     const { data: prices } = await supabase
       .from('player_prices')
-      .select('player_id, price_per_hour')
+      .select('player_id, price_per_hour, tier')
       .in('player_id', ids)
       .eq('is_active', true);
 
-    // 5. 店铺
+    // 5. 店铺列表
     const { data: shops } = await supabase
       .from('shops')
       .select('id, name')
@@ -69,64 +77,107 @@ export async function fetchPlayers(): Promise<PlayerDisplay[]> {
 
     const shopMap = new Map((shops || []).map((s) => [s.id, s.name]));
 
-    // 6. 陪玩 user 关联
+    // 6. 陪玩 user 表关联
     const { data: playerUsers } = await supabase
       .from('users')
       .select('id, player_id, shop_id')
       .in('player_id', ids)
       .eq('role', 'player');
 
-    const userIdMap = new Map((playerUsers || []).map((u: any) => [u.id, u.player_id]));
-    const userShopMap = new Map((playerUsers || []).map((u: any) => [u.player_id, u.shop_id]));
+    const userPlayerMap = new Map((playerUsers || []).map((u: any) => [u.player_id, u]));
+    const userShopMap = new Map(
+      (playerUsers || []).map((u: any) => [u.player_id, u.shop_id])
+    );
 
-    // 7. 店铺认证
+    // 7. 店铺认证（player_shops）
     const { data: playerShops } = await supabase
       .from('player_shops')
       .select('player_user_id, shop_id, tier')
       .eq('is_active', true);
 
-    const certMap = new Map<number, { shopId: number; tier: string }>();
+    // 按 player_id 分组认证
+    const certsByPlayerId = new Map<number, { shopId: number; tier: string }[]>();
     (playerShops || []).forEach((ps: any) => {
-      const pid = userIdMap.get(ps.player_user_id);
-      if (pid) certMap.set(pid, { shopId: ps.shop_id, tier: ps.tier });
+      // 通过 user.id 找 player_id
+      const user = (playerUsers || []).find((u: any) => u.id === ps.player_user_id);
+      if (!user) return;
+      if (!certsByPlayerId.has(user.player_id)) {
+        certsByPlayerId.set(user.player_id, []);
+      }
+      certsByPlayerId.get(user.player_id)!.push({
+        shopId: ps.shop_id,
+        tier: ps.tier,
+      });
     });
 
     // 8. 组装
     return players.map((p) => {
       const prof = (profiles || []).find((x: any) => x.player_id === p.id);
 
+      // 游戏
       const playerGames = (capabilities || [])
         .filter((c: any) => c.player_id === p.id)
         .map((c: any) => (gamesData || []).find((g: any) => g.id === c.game_id)?.name)
         .filter(Boolean);
       const uniqueGames = [...new Set(playerGames)];
 
+      // 价格
       const playerPrices = (prices || [])
         .filter((x: any) => x.player_id === p.id)
-        .map((x: any) => x.price_per_hour);
+        .map((x: any) => Number(x.price_per_hour));
       const minPrice = playerPrices.length > 0 ? Math.min(...playerPrices) : 0;
 
-      let shopName = '';
-      const cert = certMap.get(p.id);
-      if (cert) {
-        shopName = shopMap.get(cert.shopId) || '';
-      } else {
-        const shopId = userShopMap.get(p.id);
-        if (shopId) shopName = shopMap.get(shopId) || '';
+      // 身份
+      const identities: PlayerIdentity[] = [];
+
+      // 店铺认证
+      const certs = certsByPlayerId.get(p.id) || [];
+      certs.forEach((c) => {
+        const shopName = shopMap.get(c.shopId);
+        if (shopName) {
+          identities.push({
+            type: 'shop',
+            shopName,
+            tier: c.tier,
+            label: `${shopName}.${c.tier}`,
+          });
+        }
+      });
+
+      // 散陪身份（有散陪价就算）
+      const hasFreelance = (prices || []).some(
+        (x: any) => x.player_id === p.id && x.tier
+      );
+      if (hasFreelance) {
+        // 取该陪玩散陪的主要档位（取第一个）
+        const freelanceTier =
+          (prices || []).find((x: any) => x.player_id === p.id)?.tier || p.tier;
+        identities.push({
+          type: 'freelance',
+          shopName: '散陪',
+          tier: freelanceTier,
+          label: `散陪.${freelanceTier}`,
+        });
       }
+
+      // 主档位和主店铺
+      const mainCert = certs[0];
+      const mainTier = mainCert?.tier || p.tier;
+      const mainShopName = mainCert ? shopMap.get(mainCert.shopId) || '' : '';
 
       return {
         id: p.id,
         name: p.name,
         avatar: p.avatar || '',
-        tier: cert?.tier || p.tier,
+        tier: mainTier,
         games: uniqueGames as string[],
         price: minPrice,
         signature: prof?.signature || '',
         weeklyOrders: p.weekly_orders || 0,
         rating: p.rating || 100,
-        shopName,
+        shopName: mainShopName,
         status: p.status || 'offline',
+        identities,
       };
     });
   } catch (err) {

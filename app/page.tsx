@@ -110,13 +110,37 @@ export default function HomePage() {
                   </span>
                 </div>
 
-                <div className="meta">
+                {/* 身份标签 */}
+                {p.identities.length > 0 && (
+                  <div className="card-identities">
+                    {p.identities.map((idn, i) => (
+                      <span
+                        key={i}
+                        className={
+                          'identity-tag ' + (idn.type === 'shop' ? 'shop' : 'freelance')
+                        }
+                        style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem' }}
+                      >
+                        {idn.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {p.identities.length === 0 && (
+                  <div className="card-identities">
+                    <span className="identity-tag pending" style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem' }}>
+                      暂未开放接单
+                    </span>
+                  </div>
+                )}
+
+                <div className="meta" style={{ marginTop: '0.4rem' }}>
                   {p.games.length > 0 ? p.games.join(' · ') : '暂无游戏'}
                   <br />
-                  {p.shopName ? `${p.shopName}认证` : '散陪'}
-                  {p.status === 'online' && ' · 🟢 在线'}
-                  {p.status === 'busy' && ' · 🟠 忙碌'}
-                  {p.status === 'offline' && ' · ⚪ 离线'}
+                  {p.status === 'online' && '🟢 在线'}
+                  {p.status === 'busy' && '🟠 忙碌'}
+                  {p.status === 'offline' && '⚪ 离线'}
                 </div>
 
                 <div className="price">
