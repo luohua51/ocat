@@ -4,18 +4,19 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { MOCK_ORDERS, MOCK_PLAYER_WALLET } from '@/lib/mock';
 import { ORDER_STATUS_TEXT } from '@/lib/utils';
-import { getCurrentUser, type User } from '@/lib/auth';
+import { fetchCurrentUser, type User } from '@/lib/auth';
 
 export default function PlayerHomePage() {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    setUser(getCurrentUser());
+    fetchCurrentUser().then(setUser);
   }, []);
 
-  if (!user) return null;
+  if (!user) {
+    return <div style={{ color: '#fff', padding: '2rem', textAlign: 'center' }}>加载中…</div>;
+  }
 
-  // 陪玩视角：只看自己的订单（demo 里用 player01 对应 playerId=1）
   const myOrders = MOCK_ORDERS.filter((o) => o.playerId === (user.playerId || 1));
   const todayOrders = myOrders.length;
   const todayIncome = myOrders
@@ -40,21 +41,15 @@ export default function PlayerHomePage() {
         </div>
         <div className="player-stat-card">
           <div className="player-stat-label">今日收入</div>
-          <div className="player-stat-value" style={{ color: '#059669' }}>
-            ¥{todayIncome.toFixed(2)}
-          </div>
+          <div className="player-stat-value" style={{ color: '#059669' }}>¥{todayIncome.toFixed(2)}</div>
         </div>
         <div className="player-stat-card">
           <div className="player-stat-label">钱包余额</div>
-          <div className="player-stat-value" style={{ color: '#FF7A00' }}>
-            ¥{MOCK_PLAYER_WALLET.balance.toFixed(2)}
-          </div>
+          <div className="player-stat-value" style={{ color: '#FF7A00' }}>¥{MOCK_PLAYER_WALLET.balance.toFixed(2)}</div>
         </div>
         <div className="player-stat-card">
           <div className="player-stat-label">累计收入</div>
-          <div className="player-stat-value">
-            ¥{MOCK_PLAYER_WALLET.totalIncome.toFixed(2)}
-          </div>
+          <div className="player-stat-value">¥{MOCK_PLAYER_WALLET.totalIncome.toFixed(2)}</div>
         </div>
       </div>
 
@@ -80,34 +75,21 @@ export default function PlayerHomePage() {
       <div className="player-section">
         <div className="player-section-head">
           <h2 className="player-section-title">我的进行中订单</h2>
-          <Link href="/player/orders" className="player-more">
-            查看全部 →
-          </Link>
+          <Link href="/player/orders" className="player-more">查看全部 →</Link>
         </div>
-
         {myOrders.length === 0 ? (
           <div className="player-empty">暂无订单</div>
         ) : (
           <div className="player-order-list">
             {myOrders.slice(0, 3).map((o) => (
-              <Link
-                key={o.id}
-                href={'/player/orders/' + o.id}
-                className="player-order-item"
-              >
+              <Link key={o.id} href={'/player/orders/' + o.id} className="player-order-item">
                 <div>
-                  <div className="player-order-title">
-                    {o.game} · {o.memberName}
-                  </div>
-                  <div className="player-order-meta">
-                    {o.tier} · {o.hours}h · {o.createdAt}
-                  </div>
+                  <div className="player-order-title">{o.game} · {o.memberName}</div>
+                  <div className="player-order-meta">{o.tier} · {o.hours}h · {o.createdAt}</div>
                 </div>
                 <div className="player-order-right">
                   <div className="player-order-amount">¥{(o.totalAmount * 0.98).toFixed(2)}</div>
-                  <div className="player-order-status">
-                    {ORDER_STATUS_TEXT[o.status] || o.status}
-                  </div>
+                  <div className="player-order-status">{ORDER_STATUS_TEXT[o.status] || o.status}</div>
                 </div>
               </Link>
             ))}
