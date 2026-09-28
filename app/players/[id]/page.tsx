@@ -114,12 +114,10 @@ export default async function PlayerDetailPage({ params }: Props) {
     <>
       <nav className="navbar">
         <div className="brand">🐱 陪玩平台</div>
-        <div className="nav-links">
-          <Link href="/">首页</Link>
-          <Link href="/players">全部陪玩</Link>
-        </div>
-      </nav>
-
+      <div className="nav-links">
+        <Link href="/">全部陪玩</Link>
+        <Link href="/login">登录</Link>
+      </div>  
       <main className="main">
         <div className="detail-card">
           <div className="detail-avatar">

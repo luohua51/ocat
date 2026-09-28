@@ -40,9 +40,7 @@ export default function HomePage() {
       <main className="main">
         <div className="hero">
           <h1>挑选陪玩</h1>
-          <p>
-            {loading ? '加载中…' : `共 ${list.length} 位陪玩可预约`}
-          </p>
+          <p>{loading ? '加载中…' : `共 ${list.length} 位陪玩可预约`}</p>
         </div>
 
         <div className="filter-group">
