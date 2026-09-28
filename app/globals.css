@@ -3365,3 +3365,14 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+.member-create-error {
+  color: #f87171;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 0.6rem;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}

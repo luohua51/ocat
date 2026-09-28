@@ -1,43 +1,80 @@
 'use client';
 
-import { useState, Suspense } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { MOCK_PLAYERS, GAMES, TIERS, TIER_COLORS, type Tier } from '@/lib/mock';
+import { supabase } from '@/lib/supabase';
+import { createOrder } from '@/lib/order';
 
 function CreateContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const playerIdFromUrl = searchParams.get('playerId');
-  const initialPlayer = playerIdFromUrl
-    ? MOCK_PLAYERS.find((p) => p.id === Number(playerIdFromUrl))
-    : null;
 
-  const [playerId, setPlayerId] = useState<number>(initialPlayer?.id || 0);
-  const [game, setGame] = useState(initialPlayer?.games[0] || GAMES[0]);
-  const [tier, setTier] = useState<Tier>('娱乐');
-  const [hours, setHours] = useState(1);
+  const [players, setPlayers] = useState<any[]>([]);
+  const [games, setGames] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [playerId, setPlayerId] = useState<number>(playerIdFromUrl ? Number(playerIdFromUrl) : 0);
+  const [gameId, setGameId] = useState<number>(0);
+  const [tier, setTier] = useState<string>('娱乐');
   const [bossRank, setBossRank] = useState('');
-  const [identity, setIdentity] = useState<'freelance' | 'shop'>('freelance');
+  const [hours, setHours] = useState(1);
+  const [remark, setRemark] = useState('');
+  const [error, setError] = useState('');
 
-  const player = MOCK_PLAYERS.find((p) => p.id === playerId);
-  const unitPrice = player?.price || 0;
+  // 拉陪玩和游戏列表
+  useEffect(() => {
+    async function load() {
+      if (!supabase) return;
+      const [p, g] = await Promise.all([
+        supabase.from('players').select('id, name, tier').eq('status', 'active'),
+        supabase.from('games').select('id, name').eq('status', 'active'),
+      ]);
+      setPlayers(p.data || []);
+      setGames(g.data || []);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const player = players.find((p) => p.id === playerId);
+  const game = games.find((g) => g.id === gameId);
+
+  const unitPrice = 30; // 简化：先写死，真实价格由后端算
   const total = unitPrice * hours;
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!player) {
-      alert('请选择陪玩');
+    setError('');
+
+    if (!playerId) return setError('请选择陪玩');
+    if (!gameId) return setError('请选择游戏');
+    if (!bossRank.trim()) return setError('请填写你的段位');
+    if (hours <= 0) return setError('时长必须大于 0');
+
+    setSubmitting(true);
+    const result = await createOrder({
+      playerId,
+      gameId,
+      tier,
+      bossRank,
+      durationHours: hours,
+      identityType: 'freelance',
+      remark,
+    });
+
+    if (!result.ok) {
+      setError(result.error || '下单失败');
+      setSubmitting(false);
       return;
     }
-    if (!bossRank) {
-      alert('请填写你的段位');
-      return;
-    }
-    alert(
-      `订单已生成（demo）\n\n陪玩：${player.name}\n游戏：${game}\n档位：${tier}\n段位：${bossRank}\n时长：${hours} 小时\n总价：¥${total.toFixed(2)}`
-    );
-    router.push('/member/orders');
+
+    router.push('/member/orders/' + result.order!.id);
+  }
+
+  if (loading) {
+    return <div className="member-empty">加载中…</div>;
   }
 
   return (
@@ -56,73 +93,34 @@ function CreateContent() {
             onChange={(e) => setPlayerId(Number(e.target.value))}
           >
             <option value={0}>请选择陪玩</option>
-            {MOCK_PLAYERS.map((p) => (
+            {players.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}（{p.tier} · ¥{p.price}/时起）
+                {p.name}（{p.tier}）
               </option>
             ))}
           </select>
-
           {player && (
             <div className="member-player-preview">
-              <div className="member-player-preview-avatar">
-                {player.avatar ? <img src={player.avatar} alt="" /> : player.name.charAt(0)}
-              </div>
+              <div className="member-player-preview-avatar">{player.name.charAt(0)}</div>
               <div>
-                <div style={{ fontWeight: 700, color: '#fff' }}>
-                  {player.name}
-                  <span
-                    style={{
-                      marginLeft: '0.5rem',
-                      fontSize: '0.7rem',
-                      color: '#fff',
-                      padding: '0.1rem 0.5rem',
-                      borderRadius: '999px',
-                      background: TIER_COLORS[player.tier],
-                    }}
-                  >
-                    {player.tier}
-                  </span>
-                </div>
-                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>
-                  {player.shopName ? `${player.shopName}认证` : '散陪'}
-                </div>
+                <div style={{ fontWeight: 700, color: '#fff' }}>{player.name}</div>
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>散陪</div>
               </div>
             </div>
           )}
         </div>
 
         <div className="member-form-block">
-          <div className="member-form-label">选择身份</div>
-          <div className="member-radio-row">
-            <button
-              type="button"
-              className={'member-radio' + (identity === 'freelance' ? ' active' : '')}
-              onClick={() => setIdentity('freelance')}
-            >
-              散陪
-            </button>
-            <button
-              type="button"
-              className={'member-radio' + (identity === 'shop' ? ' active' : '')}
-              onClick={() => setIdentity('shop')}
-            >
-              店铺
-            </button>
-          </div>
-        </div>
-
-        <div className="member-form-block">
           <div className="member-form-label">选择游戏</div>
           <div className="member-radio-row">
-            {GAMES.map((g) => (
+            {games.map((g) => (
               <button
-                key={g}
+                key={g.id}
                 type="button"
-                className={'member-radio' + (game === g ? ' active' : '')}
-                onClick={() => setGame(g)}
+                className={'member-radio' + (gameId === g.id ? ' active' : '')}
+                onClick={() => setGameId(g.id)}
               >
-                {g}
+                {g.name}
               </button>
             ))}
           </div>
@@ -131,7 +129,7 @@ function CreateContent() {
         <div className="member-form-block">
           <div className="member-form-label">选择档位</div>
           <div className="member-radio-row">
-            {TIERS.map((t) => (
+            {['娱乐', '技术'].map((t) => (
               <button
                 key={t}
                 type="button"
@@ -171,6 +169,17 @@ function CreateContent() {
           </div>
         </div>
 
+        <div className="member-form-block">
+          <div className="member-form-label">备注（可选）</div>
+          <input
+            className="member-input"
+            type="text"
+            placeholder="想说的其他需求"
+            value={remark}
+            onChange={(e) => setRemark(e.target.value)}
+          />
+        </div>
+
         <div className="member-create-summary">
           <div>
             <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>单价</div>
@@ -186,8 +195,10 @@ function CreateContent() {
           </div>
         </div>
 
-        <button type="submit" className="member-submit-btn">
-          提交订单
+        {error && <div className="member-create-error">{error}</div>}
+
+        <button type="submit" className="member-submit-btn" disabled={submitting}>
+          {submitting ? '提交中…' : '提交订单'}
         </button>
       </form>
     </>
