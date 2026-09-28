@@ -87,3 +87,20 @@ export async function createOrder(payload: {
   const data = await res.json();
   return data.ok ? { ok: true, order: data.order } : { ok: false, error: data.error };
 }
+
+export async function fetchHallOrders(): Promise<Order[]> {
+  const res = await fetch('/api/orders/hall', { cache: 'no-store' });
+  const data = await res.json();
+  if (!data.ok) return [];
+  return data.orders as Order[];
+}
+
+export async function acceptOrder(
+  orderId: number
+): Promise<{ ok: boolean; order?: Order; error?: string }> {
+  const res = await fetch(`/api/orders/${orderId}/accept`, {
+    method: 'POST',
+  });
+  const data = await res.json();
+  return data.ok ? { ok: true, order: data.order } : { ok: false, error: data.error };
+}
