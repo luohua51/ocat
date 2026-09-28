@@ -2,32 +2,38 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser, changePassword, getRoleHome, logout } from '@/lib/auth';
+import {
+  fetchCurrentUser,
+  changePassword,
+  getRoleHome,
+  logout,
+  type User,
+} from '@/lib/auth';
 
 export default function ChangePasswordPage() {
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPassword2, setNewPassword2] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const user = getCurrentUser();
-    if (!user) {
-      router.replace('/login');
-    }
+    fetchCurrentUser().then((u) => {
+      if (!u) {
+        router.replace('/login');
+        return;
+      }
+      setUser(u);
+      setChecking(false);
+    });
   }, [router]);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-
-    const user = getCurrentUser();
-    if (!user) {
-      router.replace('/login');
-      return;
-    }
 
     if (newPassword.length < 6) {
       setError('新密码至少 6 位');
@@ -39,7 +45,8 @@ export default function ChangePasswordPage() {
     }
 
     setLoading(true);
-    const result = changePassword(user.id, oldPassword, newPassword);
+
+    const result = await changePassword(oldPassword, newPassword);
 
     if (!result.ok) {
       setError(result.error || '修改失败');
@@ -48,8 +55,23 @@ export default function ChangePasswordPage() {
     }
 
     // 改密成功，跳对应首页
-    router.push(getRoleHome(user.role));
+    const u = await fetchCurrentUser();
+    if (u) {
+      router.push(getRoleHome(u.role));
+    } else {
+      router.push('/login');
+    }
   }
+
+  if (checking) {
+    return (
+      <div style={{ color: '#fff', padding: '2rem', textAlign: 'center' }}>
+        加载中…
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <div className="auth-wrap">
@@ -100,8 +122,8 @@ export default function ChangePasswordPage() {
 
         <div className="auth-back">
           <button
-            onClick={() => {
-              logout();
+            onClick={async () => {
+              await logout();
               router.push('/login');
             }}
             style={{
@@ -109,6 +131,8 @@ export default function ChangePasswordPage() {
               fontSize: '0.85rem',
               cursor: 'pointer',
               fontFamily: 'inherit',
+              background: 'transparent',
+              border: 'none',
             }}
           >
             退出登录
