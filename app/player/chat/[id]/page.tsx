@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import {
   fetchConversation,
   sendMessage,
@@ -15,7 +15,6 @@ import ChatOrderCard from '@/components/ChatOrderCard';
 
 export default function PlayerChatRoomPage() {
   const params = useParams();
-  const router = useRouter();
   const conversationId = Number(params.id);
 
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -29,12 +28,14 @@ export default function PlayerChatRoomPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastIdRef = useRef<number>(0);
 
+  // 拉当前用户 id
   useEffect(() => {
     fetchCurrentUser().then((u) => {
       if (u) setMyUserId(u.id);
     });
   }, []);
 
+  // 初始加载
   useEffect(() => {
     async function load() {
       const data = await fetchConversation(conversationId);
@@ -43,12 +44,13 @@ export default function PlayerChatRoomPage() {
         return;
       }
       setConversation(data.conversation);
+      setCanSend(data.canSend);
 
+      // 按 id 去重
       const unique = Array.from(
         new Map(data.messages.map((m) => [m.id, m])).values()
       );
       setMessages(unique);
-      setCanSend(data.canSend);
       lastIdRef.current =
         unique.length > 0 ? unique[unique.length - 1].id : 0;
       setLoading(false);
@@ -56,6 +58,7 @@ export default function PlayerChatRoomPage() {
     load();
   }, [conversationId]);
 
+  // 轮询新消息
   useEffect(() => {
     if (!conversationId) return;
     const timer = setInterval(async () => {
@@ -73,12 +76,13 @@ export default function PlayerChatRoomPage() {
     return () => clearInterval(timer);
   }, [conversationId]);
 
+  // 自动滚到底
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   async function handleSend() {
-    if (!input.trim() || sending) return;
+    if (!input.trim() || sending || !canSend) return;
     setSending(true);
 
     const content = input.trim();
@@ -90,6 +94,10 @@ export default function PlayerChatRoomPage() {
     if (!r.ok) {
       alert(r.error || '发送失败');
       setInput(content);
+      // 如果是被拒收，刷新状态
+      if (r.error?.includes('拒收')) {
+        setCanSend(false);
+      }
       return;
     }
 
@@ -136,6 +144,7 @@ export default function PlayerChatRoomPage() {
 
   return (
     <div className="chat-room">
+      {/* 顶部：对方信息 */}
       <div className="chat-room-header">
         <Link href="/player/chat" className="chat-room-back">
           ←
@@ -155,17 +164,16 @@ export default function PlayerChatRoomPage() {
         </div>
       </div>
 
+      {/* 订单卡片 */}
       <ChatOrderCard
         orderId={conversation.order_id}
         role="player"
         onOrderUpdate={(o) => {
-          // 订单被接走时，切换会话可发送状态
-          if (o.player_id && o.player_id !== myUserId) {
-            setCanSend(false);
-          }
+          // 订单被其他陪玩接走时也可以继续聊，这里不额外处理
         }}
       />
 
+      {/* 消息列表 */}
       <div className="chat-room-messages">
         {messages.length === 0 ? (
           <div className="chat-room-empty">还没有消息，打个招呼吧 👋</div>
@@ -193,16 +201,249 @@ export default function PlayerChatRoomPage() {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* 被拒收提示 */}
       {!canSend && (
         <div className="chat-room-locked">
-          🔒 该订单已被其他陪玩接走，无法继续发送消息
+          🔇 对方已拒收消息，你暂时无法发送
         </div>
       )}
 
+      {/* 输入区 */}
       <div className="chat-room-input">
         <textarea
           className="chat-room-textarea"
-          placeholder={canSend ? '输入消息，回车发送' : '无法发送'}
+          placeholder={canSend ? '输入消息，回车发送' : '对方已拒收，无法发送'}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={!canSend || sending}
+          rows={1}
+        />
+        <button
+          className="chat-room-send"
+          onClick={handleSend}
+          disabled={!canSend || sending || !input.trim()}
+        >
+          {sending ? '发送中' : '发送'}
+        </button>
+      </div>
+    </div>
+  );
+}'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import {
+  fetchConversation,
+  sendMessage,
+  fetchNewMessages,
+  type Conversation,
+  type Message,
+} from '@/lib/chat';
+import { fetchCurrentUser } from '@/lib/auth';
+import ChatOrderCard from '@/components/ChatOrderCard';
+
+export default function PlayerChatRoomPage() {
+  const params = useParams();
+  const conversationId = Number(params.id);
+
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [canSend, setCanSend] = useState(true);
+  const [myUserId, setMyUserId] = useState<number | null>(null);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastIdRef = useRef<number>(0);
+
+  // 拉当前用户 id
+  useEffect(() => {
+    fetchCurrentUser().then((u) => {
+      if (u) setMyUserId(u.id);
+    });
+  }, []);
+
+  // 初始加载
+  useEffect(() => {
+    async function load() {
+      const data = await fetchConversation(conversationId);
+      if (!data.conversation) {
+        setLoading(false);
+        return;
+      }
+      setConversation(data.conversation);
+      setCanSend(data.canSend);
+
+      // 按 id 去重
+      const unique = Array.from(
+        new Map(data.messages.map((m) => [m.id, m])).values()
+      );
+      setMessages(unique);
+      lastIdRef.current =
+        unique.length > 0 ? unique[unique.length - 1].id : 0;
+      setLoading(false);
+    }
+    load();
+  }, [conversationId]);
+
+  // 轮询新消息
+  useEffect(() => {
+    if (!conversationId) return;
+    const timer = setInterval(async () => {
+      const data = await fetchNewMessages(conversationId, lastIdRef.current);
+      if (data.messages.length > 0) {
+        setMessages((prev) => {
+          const existing = new Set(prev.map((m) => m.id));
+          const fresh = data.messages.filter((m) => !existing.has(m.id));
+          return [...prev, ...fresh];
+        });
+        lastIdRef.current = data.messages[data.messages.length - 1].id;
+      }
+      setCanSend(data.canSend);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [conversationId]);
+
+  // 自动滚到底
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  async function handleSend() {
+    if (!input.trim() || sending || !canSend) return;
+    setSending(true);
+
+    const content = input.trim();
+    setInput('');
+
+    const r = await sendMessage({ conversationId, content });
+    setSending(false);
+
+    if (!r.ok) {
+      alert(r.error || '发送失败');
+      setInput(content);
+      // 如果是被拒收，刷新状态
+      if (r.error?.includes('拒收')) {
+        setCanSend(false);
+      }
+      return;
+    }
+
+    if (r.message) {
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === r.message!.id)) return prev;
+        return [...prev, r.message!];
+      });
+      lastIdRef.current = r.message.id;
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }
+
+  function formatTime(t: string) {
+    const d = new Date(t);
+    return d.toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  if (loading || myUserId === null) {
+    return <div className="player-empty">加载中…</div>;
+  }
+
+  if (!conversation) {
+    return (
+      <>
+        <div className="player-header">
+          <h1 className="player-title">会话不存在</h1>
+        </div>
+        <Link href="/player/chat" className="player-more">
+          ← 返回会话列表
+        </Link>
+      </>
+    );
+  }
+
+  return (
+    <div className="chat-room">
+      {/* 顶部：对方信息 */}
+      <div className="chat-room-header">
+        <Link href="/player/chat" className="chat-room-back">
+          ←
+        </Link>
+        <div className="chat-room-peer">
+          <div className="chat-room-peer-avatar">
+            {conversation.member_name.charAt(0)}
+          </div>
+          <div>
+            <div className="chat-room-peer-name">
+              {conversation.member_name}
+            </div>
+            <div className="chat-room-peer-sub">
+              订单 #{conversation.order_id}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 订单卡片 */}
+      <ChatOrderCard
+        orderId={conversation.order_id}
+        role="player"
+        onOrderUpdate={(o) => {
+          // 订单被其他陪玩接走时也可以继续聊，这里不额外处理
+        }}
+      />
+
+      {/* 消息列表 */}
+      <div className="chat-room-messages">
+        {messages.length === 0 ? (
+          <div className="chat-room-empty">还没有消息，打个招呼吧 👋</div>
+        ) : (
+          messages.map((m) => {
+            const isMine = m.sender_id === myUserId;
+            return (
+              <div
+                key={m.id}
+                className={'chat-msg ' + (isMine ? 'mine' : 'theirs')}
+              >
+                {!isMine && (
+                  <div className="chat-msg-avatar">
+                    {m.sender_name.charAt(0)}
+                  </div>
+                )}
+                <div className="chat-msg-bubble-wrap">
+                  <div className="chat-msg-bubble">{m.content}</div>
+                  <div className="chat-msg-time">{formatTime(m.created_at)}</div>
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* 被拒收提示 */}
+      {!canSend && (
+        <div className="chat-room-locked">
+          🔇 对方已拒收消息，你暂时无法发送
+        </div>
+      )}
+
+      {/* 输入区 */}
+      <div className="chat-room-input">
+        <textarea
+          className="chat-room-textarea"
+          placeholder={canSend ? '输入消息，回车发送' : '对方已拒收，无法发送'}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}

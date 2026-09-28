@@ -42,6 +42,7 @@ export async function GET(
 
   const messages = (messagesDesc || []).reverse();
 
+  // 标记已读
   await supabaseAdmin
     .from('messages')
     .update({ is_read: true })
@@ -49,19 +50,19 @@ export async function GET(
     .eq('is_read', false)
     .neq('sender_id', me.id);
 
-  // 检查是否还能发消息
+  // 判断当前用户能否发消息
+  // - 会员永远能发
+  // - 陪玩要看老板有没有拒收
   let canSend = true;
-  if (me.role === 'player') {
-    const { data: order } = await supabaseAdmin
-      .from('orders')
-      .select('status, player_id')
-      .eq('id', conv.order_id)
-      .maybeSingle();
-
-    if (order && order.player_id && order.player_id !== me.playerId) {
-      canSend = false;
-    }
+  if (me.role === 'player' && conv.member_muted) {
+    canSend = false;
   }
 
-  return Response.json({ ok: true, conversation: conv, messages, canSend });
+  return Response.json({
+    ok: true,
+    conversation: conv,
+    messages,
+    canSend,
+    memberMuted: !!conv.member_muted,
+  });
 }

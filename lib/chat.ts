@@ -1,8 +1,5 @@
 'use client';
 
-// ============================================================
-// 类型
-// ============================================================
 export type Conversation = {
   id: number;
   order_id: number;
@@ -12,6 +9,7 @@ export type Conversation = {
   player_name: string;
   last_message: string | null;
   last_message_at: string | null;
+  member_muted: boolean;
   created_at: string;
   unreadCount?: number;
 };
@@ -29,9 +27,6 @@ export type Message = {
   created_at: string;
 };
 
-// ============================================================
-// 获取或创建会话（必须传 orderId）
-// ============================================================
 export async function getOrCreateConversation(params: {
   orderId: number;
 }): Promise<{ ok: boolean; conversation?: Conversation; error?: string }> {
@@ -46,9 +41,6 @@ export async function getOrCreateConversation(params: {
     : { ok: false, error: data.error };
 }
 
-// ============================================================
-// 会话列表
-// ============================================================
 export async function fetchConversations(): Promise<Conversation[]> {
   const res = await fetch('/api/chat/conversations', { cache: 'no-store' });
   const data = await res.json();
@@ -56,9 +48,6 @@ export async function fetchConversations(): Promise<Conversation[]> {
   return data.conversations as Conversation[];
 }
 
-// ============================================================
-// 会话详情 + 消息列表
-// ============================================================
 export async function fetchConversation(
   id: number
 ): Promise<{
@@ -78,9 +67,6 @@ export async function fetchConversation(
   };
 }
 
-// ============================================================
-// 发消息
-// ============================================================
 export async function sendMessage(params: {
   conversationId: number;
   content: string;
@@ -105,9 +91,6 @@ export async function sendMessage(params: {
     : { ok: false, error: data.error };
 }
 
-// ============================================================
-// 拉新消息（轮询用）
-// ============================================================
 export async function fetchNewMessages(
   conversationId: number,
   sinceId: number
@@ -122,4 +105,20 @@ export async function fetchNewMessages(
     messages: data.messages || [],
     canSend: data.canSend !== false,
   };
+}
+
+// ============================================================
+// 切换拒收开关（会员用）
+// ============================================================
+export async function toggleMemberMute(
+  conversationId: number,
+  muted: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch(`/api/chat/conversations/${conversationId}/mute`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ muted }),
+  });
+  const data = await res.json();
+  return data.ok ? { ok: true } : { ok: false, error: data.error };
 }

@@ -4,7 +4,7 @@ import { getSessionUser } from '@/lib/auth-server';
 export const dynamic = 'force-dynamic';
 
 // ============================================================
-// GET 拉消息
+// GET 拉新消息
 // ============================================================
 export async function GET(
   req: Request,
@@ -55,18 +55,9 @@ export async function GET(
     .eq('is_read', false)
     .neq('sender_id', me.id);
 
-  // 返回可发送状态
   let canSend = true;
-  if (me.role === 'player') {
-    const { data: order } = await supabaseAdmin
-      .from('orders')
-      .select('status, player_id')
-      .eq('id', conv.order_id)
-      .maybeSingle();
-
-    if (order && order.player_id && order.player_id !== me.playerId) {
-      canSend = false;
-    }
+  if (me.role === 'player' && conv.member_muted) {
+    canSend = false;
   }
 
   return Response.json({ ok: true, messages: data || [], canSend });
@@ -103,20 +94,12 @@ export async function POST(
     return Response.json({ ok: false, error: '无权操作' }, { status: 403 });
   }
 
-  // 锁单检查
-  if (me.role === 'player') {
-    const { data: order } = await supabaseAdmin
-      .from('orders')
-      .select('status, player_id')
-      .eq('id', conv.order_id)
-      .maybeSingle();
-
-    if (order && order.player_id && order.player_id !== me.playerId) {
-      return Response.json(
-        { ok: false, error: '该订单已被其他陪玩接走，无法继续发送消息' },
-        { status: 403 }
-      );
-    }
+  // 陪玩发送时，检查老板是否已拒收
+  if (me.role === 'player' && conv.member_muted) {
+    return Response.json(
+      { ok: false, error: '对方已拒收消息，无法发送' },
+      { status: 403 }
+    );
   }
 
   const body = await req.json();
@@ -150,8 +133,7 @@ export async function POST(
     );
   }
 
-  const preview =
-    type === 'order_card' ? '[订单卡片]' : content.slice(0, 50) || '';
+  const preview = type === 'order_card' ? '[订单卡片]' : content.slice(0, 50) || '';
 
   await supabaseAdmin
     .from('conversations')

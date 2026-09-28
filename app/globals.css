@@ -4309,3 +4309,40 @@ button {
 .player-toggle.on .player-toggle-dot {
   transform: translateX(1.4rem);
 }
+
+/* ============================================================
+   聊天页顶部：会员的拒收开关
+   ============================================================ */
+.chat-mute-btn {
+  margin-left: auto;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+  background: rgba(52, 211, 153, 0.15);
+  border-color: rgba(52, 211, 153, 0.4);
+  color: #34d399;
+}
+
+.chat-mute-btn:hover:not(:disabled) {
+  background: rgba(52, 211, 153, 0.25);
+}
+
+.chat-mute-btn.muted {
+  background: rgba(255, 122, 0, 0.15);
+  border-color: rgba(255, 122, 0, 0.4);
+  color: #FF7A00;
+}
+
+.chat-mute-btn.muted:hover:not(:disabled) {
+  background: rgba(255, 122, 0, 0.25);
+}
+
+.chat-mute-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

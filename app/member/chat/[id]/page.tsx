@@ -7,6 +7,7 @@ import {
   fetchConversation,
   sendMessage,
   fetchNewMessages,
+  toggleMemberMute,
   type Conversation,
   type Message,
 } from '@/lib/chat';
@@ -22,8 +23,9 @@ export default function MemberChatRoomPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [canSend, setCanSend] = useState(true);
+  const [memberMuted, setMemberMuted] = useState(false);
   const [myUserId, setMyUserId] = useState<number | null>(null);
+  const [muting, setMuting] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastIdRef = useRef<number>(0);
@@ -42,12 +44,12 @@ export default function MemberChatRoomPage() {
         return;
       }
       setConversation(data.conversation);
+      setMemberMuted(!!data.conversation.member_muted);
 
       const unique = Array.from(
         new Map(data.messages.map((m) => [m.id, m])).values()
       );
       setMessages(unique);
-      setCanSend(data.canSend);
       lastIdRef.current =
         unique.length > 0 ? unique[unique.length - 1].id : 0;
       setLoading(false);
@@ -67,7 +69,6 @@ export default function MemberChatRoomPage() {
         });
         lastIdRef.current = data.messages[data.messages.length - 1].id;
       }
-      setCanSend(data.canSend);
     }, 3000);
     return () => clearInterval(timer);
   }, [conversationId]);
@@ -79,7 +80,6 @@ export default function MemberChatRoomPage() {
   async function handleSend() {
     if (!input.trim() || sending) return;
     setSending(true);
-
     const content = input.trim();
     setInput('');
 
@@ -99,6 +99,27 @@ export default function MemberChatRoomPage() {
       });
       lastIdRef.current = r.message.id;
     }
+  }
+
+  async function handleToggleMute() {
+    if (muting) return;
+    const next = !memberMuted;
+
+    if (next) {
+      if (!confirm('确定拒收此陪玩的消息？\n拒收后对方将无法给你发消息。')) return;
+    }
+
+    setMuting(true);
+    const r = await toggleMemberMute(conversationId, next);
+    setMuting(false);
+
+    if (!r.ok) {
+      alert(r.error || '操作失败');
+      return;
+    }
+
+    setMemberMuted(next);
+    alert(next ? '已拒收该陪玩消息' : '已恢复接收消息');
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -148,6 +169,15 @@ export default function MemberChatRoomPage() {
             <div className="chat-room-peer-sub">订单 #{conversation.order_id}</div>
           </div>
         </div>
+
+        <button
+          className={'chat-mute-btn' + (memberMuted ? ' muted' : '')}
+          onClick={handleToggleMute}
+          disabled={muting}
+          title={memberMuted ? '点击恢复接收消息' : '点击拒收此陪玩消息'}
+        >
+          {muting ? '处理中' : memberMuted ? '🔇 已拒收' : '🔊 已接收'}
+        </button>
       </div>
 
       <ChatOrderCard orderId={conversation.order_id} role="member" />
@@ -179,26 +209,26 @@ export default function MemberChatRoomPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {!canSend && (
-        <div className="chat-room-locked">
-          🔒 该订单已被其他陪玩接走，无法继续发送消息
+      {memberMuted && (
+        <div className="chat-room-locked" style={{ background: 'rgba(255,122,0,0.1)', borderTopColor: 'rgba(255,122,0,0.3)', color: '#FF7A00' }}>
+          🔇 你已拒收此陪玩的消息。他可以查看历史消息，但无法再发送新消息。
         </div>
       )}
 
       <div className="chat-room-input">
         <textarea
           className="chat-room-textarea"
-          placeholder={canSend ? '输入消息，回车发送' : '无法发送'}
+          placeholder="输入消息，回车发送"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={!canSend || sending}
+          disabled={sending}
           rows={1}
         />
         <button
           className="chat-room-send"
           onClick={handleSend}
-          disabled={!canSend || sending || !input.trim()}
+          disabled={sending || !input.trim()}
         >
           {sending ? '发送中' : '发送'}
         </button>
