@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getCurrentUser, logout, type User } from '@/lib/auth';
+import { fetchCurrentUser, logout, type User } from '@/lib/auth';
 
 const MENU = [
   { href: '/shop', label: '仪表盘', icon: '📊' },
@@ -12,69 +12,53 @@ const MENU = [
   { href: '/shop/certifications', label: '限定认证', icon: '🏆' },
 ];
 
-export default function ShopLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function ShopLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const u = getCurrentUser();
-    if (!u) {
-      router.replace('/login?redirect=' + pathname);
-      return;
-    }
-    if (u.role !== 'shop_admin') {
-      router.replace('/login');
-      return;
-    }
-    setUser(u);
-    setLoading(false);
+    fetchCurrentUser().then((u) => {
+      if (!u) {
+        router.replace('/login?redirect=' + pathname);
+        return;
+      }
+      if (u.role !== 'shop_admin') {
+        router.replace('/login');
+        return;
+      }
+      setUser(u);
+      setLoading(false);
+    });
   }, [router, pathname]);
 
   if (loading || !user) {
-    return (
-      <div style={{ color: '#fff', padding: '2rem', textAlign: 'center' }}>
-        加载中…
-      </div>
-    );
+    return <div style={{ color: '#fff', padding: '2rem', textAlign: 'center' }}>加载中…</div>;
   }
 
   return (
     <div className="shop-layout">
       <aside className="shop-sidebar">
         <div className="shop-logo">🏪 店铺管理</div>
-
         <nav className="shop-nav">
           {MENU.map((item) => {
-            const active =
-              item.href === '/shop'
-                ? pathname === '/shop'
-                : pathname.startsWith(item.href);
+            const active = item.href === '/shop' ? pathname === '/shop' : pathname.startsWith(item.href);
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={'shop-nav-item' + (active ? ' active' : '')}
-              >
+              <Link key={item.href} href={item.href} className={'shop-nav-item' + (active ? ' active' : '')}>
                 <span className="shop-nav-icon">{item.icon}</span>
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
-
         <div className="shop-user">
           <div className="shop-user-name">{user.nickname}</div>
           <div className="shop-user-sub">店铺 ID：{user.shopId ?? '-'}</div>
           <button
             className="shop-logout"
-            onClick={() => {
-              logout();
+            onClick={async () => {
+              await logout();
               router.push('/');
             }}
           >
@@ -82,7 +66,6 @@ export default function ShopLayout({
           </button>
         </div>
       </aside>
-
       <div className="shop-main">{children}</div>
     </div>
   );

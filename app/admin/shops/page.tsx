@@ -83,9 +83,6 @@ export default function AdminShopsPage() {
           <div className="admin-form-actions">
             <button className="admin-btn-primary" onClick={handleCreate}>确认创建</button>
           </div>
-          <div className="admin-note" style={{ marginTop: '0.8rem' }}>
-            创建店铺时会同时创建店长账号，初始密码 <b>123456</b>。
-          </div>
         </div>
       )}
 
