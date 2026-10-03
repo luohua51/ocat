@@ -2,16 +2,17 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { createOrder } from '@/lib/order';
+import { fetchPlayers, type PlayerDisplay } from '@/lib/db';
+import { fetchGames, type Game } from '@/lib/game';
 
 function CreateContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const playerIdFromUrl = searchParams.get('playerId');
 
-  const [players, setPlayers] = useState<any[]>([]);
-  const [games, setGames] = useState<any[]>([]);
+  const [players, setPlayers] = useState<PlayerDisplay[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -27,13 +28,9 @@ function CreateContent() {
 
   useEffect(() => {
     async function load() {
-      if (!supabase) return;
-      const [p, g] = await Promise.all([
-        supabase.from('players').select('id, name, tier, accept_freelance').eq('status', 'active'),
-        supabase.from('games').select('id, name, ranks').eq('status', 'active'),
-      ]);
-      setPlayers(p.data || []);
-      setGames(g.data || []);
+      const [p, g] = await Promise.all([fetchPlayers(), fetchGames()]);
+      setPlayers(p);
+      setGames(g);
       setLoading(false);
     }
     load();
@@ -42,11 +39,8 @@ function CreateContent() {
   const player = players.find((p) => p.id === playerId);
   const selectedGame = games.find((g) => g.id === gameId);
   const isDesignated = playerId > 0;
-
-  // 当前游戏可选的段位
   const availableRanks: string[] = (selectedGame?.ranks || []) as string[];
 
-  // 游戏变了，清空段位
   useEffect(() => {
     setBossRank('');
   }, [gameId]);
@@ -102,49 +96,13 @@ function CreateContent() {
             <option value={0}>🎯 不指定（发到抢单池，陪玩来抢）</option>
             {players.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}（{p.tier}）{!p.accept_freelance ? ' · 仅店陪' : ''}
+                {p.name}（{p.tier}）
+                {p.identities.length > 0
+                  ? ` · ${p.identities.map((i) => i.label).join(' ')}`
+                  : ''}
               </option>
             ))}
           </select>
-
-          {player && (
-            <div className="member-player-preview">
-              <div className="member-player-preview-avatar">
-                {player.name.charAt(0)}
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, color: '#fff' }}>
-                  {player.name}
-                </div>
-                <div
-                  style={{
-                    fontSize: '0.8rem',
-                    color: 'rgba(255,255,255,0.6)',
-                  }}
-                >
-                  {player.accept_freelance ? '可接散陪单' : '仅店铺单'}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {!isDesignated && (
-            <div
-              style={{
-                marginTop: '0.8rem',
-                padding: '0.8rem 1rem',
-                background: 'rgba(99, 102, 241, 0.08)',
-                border: '1px dashed rgba(99, 102, 241, 0.4)',
-                borderRadius: '0.7rem',
-                fontSize: '0.82rem',
-                color: 'rgba(255,255,255,0.7)',
-                lineHeight: 1.7,
-              }}
-            >
-              📢 不指定陪玩，订单会进入<strong style={{ color: '#818cf8' }}>抢单池</strong>，
-              所有陪玩都能看到并抢单。
-            </div>
-          )}
         </div>
 
         <div className="member-form-block">
@@ -179,17 +137,8 @@ function CreateContent() {
           </div>
         </div>
 
-        {/* 段位：从游戏里读，做成按钮 */}
         <div className="member-form-block">
-          <div className="member-form-label">
-            你的段位
-            {selectedGame && availableRanks.length > 0 && (
-              <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)', marginLeft: '0.5rem' }}>
-                （{selectedGame.name}）
-              </span>
-            )}
-          </div>
-
+          <div className="member-form-label">你的段位</div>
           {!selectedGame ? (
             <div className="member-empty" style={{ padding: '0.8rem', fontSize: '0.85rem' }}>
               请先选择游戏
@@ -243,24 +192,14 @@ function CreateContent() {
 
         <div className="member-create-summary">
           <div>
-            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
-              单价
-            </div>
+            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>单价</div>
             <div style={{ fontSize: '1rem', fontWeight: 700, color: '#fff' }}>
               {isDesignated ? `¥${unitPrice.toFixed(2)}/时` : '待定'}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
-              总价
-            </div>
-            <div
-              style={{
-                fontSize: '1.6rem',
-                fontWeight: 800,
-                color: '#FF7A00',
-              }}
-            >
+            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>总价</div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#FF7A00' }}>
               {isDesignated ? `¥${total.toFixed(2)}` : '待接单后确定'}
             </div>
           </div>
@@ -268,11 +207,7 @@ function CreateContent() {
 
         {error && <div className="member-create-error">{error}</div>}
 
-        <button
-          type="submit"
-          className="member-submit-btn"
-          disabled={submitting}
-        >
+        <button type="submit" className="member-submit-btn" disabled={submitting}>
           {submitting ? '提交中…' : isDesignated ? '提交订单' : '发布到抢单池'}
         </button>
       </form>
