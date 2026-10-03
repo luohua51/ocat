@@ -69,29 +69,59 @@ export async function GET() {
       .select('player_user_id, shop_id, tier')
       .eq('is_active', true);
 
-    // 8. 组装
+    // 8. 所有店铺价（用于计算店陪最低价）
+    const shopIds = [
+      ...new Set(
+        (playerUsers || [])
+          .map((u: any) => u.shop_id)
+          .filter((x: any) => !!x)
+      ),
+    ];
+
+    const { data: shopPrices } = await supabaseAdmin
+      .from('shop_prices')
+      .select('shop_id, game_id, price_per_hour')
+      .in('shop_id', shopIds.length > 0 ? shopIds : [-1])
+      .eq('is_active', true);
+
+    // 9. 组装
     const result = players.map((p) => {
       const prof = (profiles || []).find((x: any) => x.player_id === p.id);
 
+      // 游戏名列表
       const playerGames = (capabilities || [])
         .filter((c: any) => c.player_id === p.id)
         .map((c: any) => (gamesData || []).find((g: any) => g.id === c.game_id)?.name)
         .filter(Boolean);
       const uniqueGames = [...new Set(playerGames)];
 
-      const playerPrices = (prices || [])
+      // 该陪玩能接的游戏 id 列表
+      const playerGameIds = (capabilities || [])
+        .filter((c: any) => c.player_id === p.id)
+        .map((c: any) => c.game_id);
+
+      // 散陪价列表
+      const freelancePrices = (prices || [])
         .filter((x: any) => x.player_id === p.id)
         .map((x: any) => Number(x.price_per_hour));
-      const minPrice = playerPrices.length > 0 ? Math.min(...playerPrices) : 0;
-
-      const identities: {
-        type: 'shop' | 'freelance';
-        shopName: string;
-        tier: string;
-        label: string;
-      }[] = [];
 
       const userInfo = (playerUsers || []).find((u: any) => u.player_id === p.id);
+
+      // 店铺价列表（该陪玩能接游戏的店铺价）
+      const shopPricesList: number[] = [];
+      if (userInfo?.shop_id) {
+        (shopPrices || []).forEach((sp: any) => {
+          if (
+            sp.shop_id === userInfo.shop_id &&
+            playerGameIds.includes(sp.game_id)
+          ) {
+            shopPricesList.push(Number(sp.price_per_hour));
+          }
+        });
+      }
+
+      // ========== 身份 ==========
+      const identities: any[] = [];
 
       if (userInfo) {
         const certs = (playerShops || []).filter(
@@ -123,7 +153,6 @@ export async function GET() {
         }
       }
 
-      // 散陪身份：开关开启且有价格
       const hasFreelance =
         p.accept_freelance &&
         (prices || []).some((x: any) => x.player_id === p.id);
@@ -139,8 +168,14 @@ export async function GET() {
         });
       }
 
+      // ========== 最低展示价 ==========
+      const allPrices = [
+        ...(p.accept_freelance ? freelancePrices : []),
+        ...shopPricesList,
+      ];
+      const displayPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0;
+
       const mainIdentity = identities[0];
-      const displayPrice = p.accept_freelance ? minPrice : 0;
 
       return {
         id: p.id,
@@ -160,6 +195,9 @@ export async function GET() {
 
     return Response.json({ ok: true, players: result });
   } catch (err: any) {
-    return Response.json({ ok: false, error: err?.message || '服务器错误' }, { status: 500 });
+    return Response.json(
+      { ok: false, error: err?.message || '服务器错误' },
+      { status: 500 }
+    );
   }
 }
