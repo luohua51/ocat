@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { fetchPlayers, type PlayerDisplay } from '@/lib/db';
 import { GAMES, TIERS, TIER_COLORS, type Tier } from '@/lib/mock';
 import { sortPlayers } from '@/lib/utils';
+import { proxyImage } from '@/lib/image';
 
 export default function HomePage() {
   const [game, setGame] = useState('全部');
@@ -82,7 +83,11 @@ export default function HomePage() {
             list.map((p) => (
               <Link key={p.id} href={`/players/${p.id}`} className="card">
                 <div className="avatar">
-                  {p.avatar ? <img src={p.avatar} alt={p.name} /> : p.name.charAt(0)}
+                  {p.avatar ? (
+                    <img src={proxyImage(p.avatar)} alt={p.name} loading="lazy" />
+                  ) : (
+                    p.name.charAt(0)
+                  )}
                 </div>
 
                 <div

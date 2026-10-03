@@ -9,6 +9,7 @@ import {
   type PlayerProfile,
   type PlayerFull,
 } from '@/lib/player';
+import { proxyImage } from '@/lib/image';
 
 export default function PlayerProfilePage() {
   const [player, setPlayer] = useState<PlayerFull | null>(null);
@@ -18,7 +19,6 @@ export default function PlayerProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // 表单字段
   const [name, setName] = useState('');
   const [signature, setSignature] = useState('');
   const [description, setDescription] = useState('');
@@ -45,7 +45,6 @@ export default function PlayerProfilePage() {
       setAvailableTime(data.profile.available_time || '');
     }
 
-    // 从 capabilities 反查游戏名
     if (data.capabilities.length > 0 && g.length > 0) {
       const names = data.capabilities
         .map((c) => g.find((x) => x.id === c.game_id)?.name)
@@ -82,7 +81,6 @@ export default function PlayerProfilePage() {
       return;
     }
 
-    // 刷新
     const data = await fetchMyPlayerProfile();
     setPlayer(data.player);
   }
@@ -121,14 +119,13 @@ export default function PlayerProfilePage() {
       </div>
 
       <div className="player-profile-card">
-        {/* 头像 */}
         <div className="player-avatar-uploader">
           <div
             className="player-profile-avatar"
             onClick={() => !uploading && fileRef.current?.click()}
           >
             {player?.avatar ? (
-              <img src={player.avatar} alt="avatar" />
+              <img src={proxyImage(player.avatar)} alt="avatar" />
             ) : (
               (player?.name || '?').charAt(0)
             )}
@@ -152,7 +149,6 @@ export default function PlayerProfilePage() {
           </button>
         </div>
 
-        {/* 昵称 */}
         <div className="player-form-block">
           <div className="player-form-label">昵称</div>
           <input
@@ -163,7 +159,6 @@ export default function PlayerProfilePage() {
           />
         </div>
 
-        {/* 个性签名 */}
         <div className="player-form-block">
           <div className="player-form-label">个性签名</div>
           <input
@@ -175,7 +170,6 @@ export default function PlayerProfilePage() {
           />
         </div>
 
-        {/* 段位说明 */}
         <div className="player-form-block">
           <div className="player-form-label">段位说明（自由填写）</div>
           <input
@@ -187,7 +181,6 @@ export default function PlayerProfilePage() {
           />
         </div>
 
-        {/* 可接游戏 */}
         <div className="player-form-block">
           <div className="player-form-label">可接游戏</div>
           <div className="player-filter-chips">
@@ -196,7 +189,8 @@ export default function PlayerProfilePage() {
                 key={g.id}
                 type="button"
                 className={
-                  'player-filter-chip' + (selectedGames.includes(g.name) ? ' active' : '')
+                  'player-filter-chip' +
+                  (selectedGames.includes(g.name) ? ' active' : '')
                 }
                 onClick={() => toggleGame(g.name)}
               >
@@ -206,7 +200,6 @@ export default function PlayerProfilePage() {
           </div>
         </div>
 
-        {/* 接单时间 */}
         <div className="player-form-block">
           <div className="player-form-label">接单时间</div>
           <input
@@ -218,7 +211,6 @@ export default function PlayerProfilePage() {
           />
         </div>
 
-        {/* 个人介绍 */}
         <div className="player-form-block">
           <div className="player-form-label">个人介绍</div>
           <textarea

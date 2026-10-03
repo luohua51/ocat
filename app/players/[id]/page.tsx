@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { TIER_COLORS } from '@/lib/mock';
+import { proxyImage } from '@/lib/image';
 
 type PlayerDetail = {
   player: any;
@@ -101,7 +102,7 @@ export default function PlayerDetailPage() {
         <div className="detail-card">
           <div className="detail-avatar">
             {player.avatar ? (
-              <img src={player.avatar} alt={player.name} />
+              <img src={proxyImage(player.avatar)} alt={player.name} />
             ) : (
               player.name.charAt(0)
             )}
@@ -211,7 +212,7 @@ export default function PlayerDetailPage() {
               <div className="section-title">语音试听</div>
               <audio
                 controls
-                src={player.audio}
+                src={proxyImage(player.audio)}
                 style={{ width: '100%', marginTop: '0.5rem' }}
               />
             </div>
