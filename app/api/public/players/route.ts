@@ -1,6 +1,8 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 export async function GET() {
   if (!supabaseAdmin) {
@@ -16,7 +18,10 @@ export async function GET() {
       .limit(100);
 
     if (!players || players.length === 0) {
-      return Response.json({ ok: true, players: [] });
+      return Response.json(
+        { ok: true, players: [] },
+        { headers: { 'Cache-Control': 'no-store, must-revalidate' } }
+      );
     }
 
     const ids = players.map((p) => p.id);
@@ -69,7 +74,7 @@ export async function GET() {
       .select('player_user_id, shop_id, tier')
       .eq('is_active', true);
 
-    // 8. 所有店铺价（用于计算店陪最低价）
+    // 8. 所有店铺价
     const shopIds = [
       ...new Set(
         (playerUsers || [])
@@ -88,26 +93,22 @@ export async function GET() {
     const result = players.map((p) => {
       const prof = (profiles || []).find((x: any) => x.player_id === p.id);
 
-      // 游戏名列表
       const playerGames = (capabilities || [])
         .filter((c: any) => c.player_id === p.id)
         .map((c: any) => (gamesData || []).find((g: any) => g.id === c.game_id)?.name)
         .filter(Boolean);
       const uniqueGames = [...new Set(playerGames)];
 
-      // 该陪玩能接的游戏 id 列表
       const playerGameIds = (capabilities || [])
         .filter((c: any) => c.player_id === p.id)
         .map((c: any) => c.game_id);
 
-      // 散陪价列表
       const freelancePrices = (prices || [])
         .filter((x: any) => x.player_id === p.id)
         .map((x: any) => Number(x.price_per_hour));
 
       const userInfo = (playerUsers || []).find((u: any) => u.player_id === p.id);
 
-      // 店铺价列表（该陪玩能接游戏的店铺价）
       const shopPricesList: number[] = [];
       if (userInfo?.shop_id) {
         (shopPrices || []).forEach((sp: any) => {
@@ -120,7 +121,6 @@ export async function GET() {
         });
       }
 
-      // ========== 身份 ==========
       const identities: any[] = [];
 
       if (userInfo) {
@@ -168,7 +168,6 @@ export async function GET() {
         });
       }
 
-      // ========== 最低展示价 ==========
       const allPrices = [
         ...(p.accept_freelance ? freelancePrices : []),
         ...shopPricesList,
@@ -193,7 +192,16 @@ export async function GET() {
       };
     });
 
-    return Response.json({ ok: true, players: result });
+    return Response.json(
+      { ok: true, players: result },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
   } catch (err: any) {
     return Response.json(
       { ok: false, error: err?.message || '服务器错误' },
