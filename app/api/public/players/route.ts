@@ -25,11 +25,13 @@ export async function GET() {
 
     const ids = players.map((p) => p.id);
 
+    // 资料
     const { data: profiles } = await supabaseAdmin
       .from('player_profiles')
       .select('player_id, signature')
       .in('player_id', ids);
 
+    // 能力
     const { data: capabilities } = await supabaseAdmin
       .from('player_capabilities')
       .select('player_id, game_id, tier')
@@ -45,12 +47,14 @@ export async function GET() {
 
     const gameMap = new Map((gamesData || []).map((g: any) => [g.id, g.name]));
 
+    // 散陪价
     const { data: prices } = await supabaseAdmin
       .from('player_prices')
       .select('player_id, price_per_hour, tier')
       .in('player_id', ids)
       .eq('is_active', true);
 
+    // 店铺
     const { data: shops } = await supabaseAdmin
       .from('shops')
       .select('id, name')
@@ -58,13 +62,16 @@ export async function GET() {
 
     const shopMap = new Map((shops || []).map((s: any) => [s.id, s.name]));
 
+    // 陪玩 user
     const { data: playerUsers } = await supabaseAdmin
       .from('users')
       .select('id, player_id, shop_id')
       .in('player_id', ids)
       .eq('role', 'player');
 
-    // 查所有认证
+    const userMap = new Map((playerUsers || []).map((u: any) => [u.id, u.player_id]));
+
+    // 认证（按游戏）
     const playerUserIds = (playerUsers || []).map((u: any) => u.id);
 
     const { data: certs } = await supabaseAdmin
@@ -75,8 +82,6 @@ export async function GET() {
         playerUserIds.length > 0 ? playerUserIds : [-1]
       )
       .eq('is_active', true);
-
-    const userMap = new Map((playerUsers || []).map((u: any) => [u.id, u.player_id]));
 
     // 按 player_id 分组认证
     const certsByPlayer = new Map<
@@ -95,6 +100,7 @@ export async function GET() {
       });
     });
 
+    // 店铺价
     const shopPricesIds = [
       ...new Set((playerUsers || []).map((u: any) => u.shop_id).filter(Boolean)),
     ];
@@ -127,14 +133,15 @@ export async function GET() {
       // ============ 身份 ============
       const identities: any[] = [];
 
-      // 店铺认证（按游戏）
       const myCerts = certsByPlayer.get(p.id) || [];
+
       myCerts.forEach((c) => {
         const shopName = shopMap.get(c.shopId);
         const gameName = gameMap.get(c.gameId);
         if (shopName && gameName) {
           identities.push({
             type: 'shop',
+            shopId: c.shopId,           // ← 关键：给前端跳转用
             shopName,
             gameName,
             tier: c.tier,
