@@ -4346,3 +4346,83 @@ button {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ============================================================
+   店铺认证页
+   ============================================================ */
+.cert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.cert-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.9rem;
+  padding: 1.2rem 1.3rem;
+}
+
+.cert-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.cert-card-avatar {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF7A00, #F97316);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: #fff;
+  font-weight: 800;
+}
+
+.cert-card-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.cert-card-sub {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.cert-games {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.cert-game-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.6rem 0.8rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cert-game-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.cert-game-actions,
+.cert-tier-picker {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+}

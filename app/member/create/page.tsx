@@ -5,9 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createOrder } from '@/lib/order';
 import { fetchCurrentUser, type User } from '@/lib/auth';
 
-// 展示顺序：从低到高
 const ALL_TIERS = ['娱乐', '技术', '金牌', '魔王', '明星'];
-// 数值越小等级越高
+
 const TIER_RANK: Record<string, number> = {
   娱乐: 4,
   技术: 3,
@@ -16,12 +15,17 @@ const TIER_RANK: Record<string, number> = {
   明星: 0,
 };
 
+// 散陪可用档位
+const FREELANCE_TIERS = ['娱乐', '技术'];
+
 type Player = {
   id: number;
   name: string;
   avatar: string;
   tier: string;
+  acceptFreelance: boolean;
   capabilities: { gameId: number; tier: string }[];
+  shopGameTiers: { gameId: number; tier: string; shopId: number }[];
 };
 
 type Game = {
@@ -53,16 +57,13 @@ function CreateContent() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // 1. 检查登录
   useEffect(() => {
     fetchCurrentUser().then((u) => {
       if (!u || u.role !== 'member') {
         const redirectPath = playerIdFromUrl
           ? `/member/create?playerId=${playerIdFromUrl}`
           : '/member/create';
-        router.replace(
-          `/login?redirect=${encodeURIComponent(redirectPath)}`
-        );
+        router.replace(`/login?redirect=${encodeURIComponent(redirectPath)}`);
         return;
       }
       setUser(u);
@@ -70,7 +71,6 @@ function CreateContent() {
     });
   }, [router, playerIdFromUrl]);
 
-  // 2. 加载数据
   useEffect(() => {
     async function load() {
       try {
@@ -98,48 +98,63 @@ function CreateContent() {
   const selectedGame = games.find((g) => g.id === gameId);
   const isDesignated = playerId > 0;
 
-  // 3. 可用游戏
+  // 可用游戏
   const availableGames = useMemo(() => {
-    if (!isDesignated) return games; // 不指定 → 全部
+    if (!isDesignated) return games;
     if (!player) return [];
     const gameIds = [...new Set(player.capabilities.map((c) => c.gameId))];
     return games.filter((g) => gameIds.includes(g.id));
   }, [isDesignated, player, games]);
 
-  // 4. 可用档位（向下兼容）
+  // 可用档位
   const availableTiers = useMemo(() => {
-    if (!isDesignated) return ALL_TIERS; // 不指定 → 全部
+    if (!isDesignated) return ALL_TIERS;
     if (!player || !gameId) return [];
-    const capTiers = player.capabilities
-      .filter((c) => c.gameId === gameId)
-      .map((c) => c.tier);
-    if (capTiers.length === 0) return [];
-    // 取能力里最高的档位（rank 最小）
-    const highestRank = Math.min(...capTiers.map((t) => TIER_RANK[t] ?? 4));
-    // 向下取：rank >= highestRank 的都可用
-    return ALL_TIERS.filter((t) => (TIER_RANK[t] ?? 4) >= highestRank);
+
+    // 1. 该游戏有店铺授权 → 按授权向下兼容
+    const shopTierForGame = player.shopGameTiers.find(
+      (sgt) => sgt.gameId === gameId
+    );
+
+    if (shopTierForGame) {
+      const playerRank = TIER_RANK[shopTierForGame.tier] ?? 4;
+      return ALL_TIERS.filter((t) => (TIER_RANK[t] ?? 4) >= playerRank);
+    }
+
+    // 2. 没有店铺授权，但接散陪 → 只亮娱乐、技术
+    if (player.acceptFreelance) {
+      const hasCapability = player.capabilities.some(
+        (c) => c.gameId === gameId
+      );
+      if (hasCapability) return FREELANCE_TIERS;
+    }
+
+    return [];
   }, [isDesignated, player, gameId]);
 
-  // 5. 可用段位
   const availableRanks = useMemo(() => {
     if (!selectedGame) return [];
     return selectedGame.ranks || [];
   }, [selectedGame]);
 
-  // 6. 陪玩换了 → 自动选第一个可用游戏
+  // 陪玩换了 → 自动选第一个可用游戏
   useEffect(() => {
-    if (!isDesignated) return;
+    if (!isDesignated) {
+      setGameId(0);
+      setTier('娱乐');
+      setBossRank('');
+      return;
+    }
     if (availableGames.length > 0) {
       setGameId(availableGames[0].id);
     } else {
       setGameId(0);
     }
-    setTier('娱乐');
     setBossRank('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerId, isDesignated]);
 
-  // 7. 游戏变了 → 校正档位、重置段位
+  // 游戏变了 → 校正档位
   useEffect(() => {
     if (availableTiers.length > 0 && !availableTiers.includes(tier)) {
       setTier(availableTiers[0]);
@@ -148,7 +163,6 @@ function CreateContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId]);
 
-  // 8. 提交
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -182,6 +196,7 @@ function CreateContent() {
   if (loading) return <div className="member-empty">加载中…</div>;
 
   const noCapability = isDesignated && availableGames.length === 0;
+  const noTier = isDesignated && gameId > 0 && availableTiers.length === 0;
 
   return (
     <>
@@ -191,7 +206,6 @@ function CreateContent() {
       </div>
 
       <form onSubmit={handleSubmit} className="member-create-form">
-        {/* 选择陪玩 */}
         <div className="member-form-block">
           <div className="member-form-label">选择陪玩</div>
           <select
@@ -208,14 +222,12 @@ function CreateContent() {
           </select>
         </div>
 
-        {/* 未开放接单提示 */}
         {noCapability && (
           <div className="member-create-error" style={{ marginBottom: '1rem' }}>
             该陪玩还没开放接单能力，暂时无法预约
           </div>
         )}
 
-        {/* 选择游戏 */}
         {!noCapability && (
           <div className="member-form-block">
             <div className="member-form-label">选择游戏</div>
@@ -245,8 +257,13 @@ function CreateContent() {
           </div>
         )}
 
-        {/* 选择档位 */}
-        {!noCapability && gameId > 0 && (
+        {noTier && (
+          <div className="member-create-error" style={{ marginBottom: '1rem' }}>
+            该陪玩在「{selectedGame?.name}」暂无可接单的档位
+          </div>
+        )}
+
+        {!noCapability && !noTier && gameId > 0 && (
           <div className="member-form-block">
             <div className="member-form-label">选择档位</div>
             <div className="member-radio-row">
@@ -273,8 +290,7 @@ function CreateContent() {
           </div>
         )}
 
-        {/* 选择段位 */}
-        {!noCapability && gameId > 0 && (
+        {!noCapability && !noTier && gameId > 0 && (
           <div className="member-form-block">
             <div className="member-form-label">
               你的段位{selectedGame ? `（${selectedGame.name}）` : ''}
@@ -305,7 +321,6 @@ function CreateContent() {
           </div>
         )}
 
-        {/* 时长 */}
         <div className="member-form-block">
           <div className="member-form-label">时长（小时）</div>
           <div className="member-radio-row">
@@ -322,7 +337,6 @@ function CreateContent() {
           </div>
         </div>
 
-        {/* 备注 */}
         <div className="member-form-block">
           <div className="member-form-label">备注（可选）</div>
           <input
@@ -339,7 +353,7 @@ function CreateContent() {
         <button
           type="submit"
           className="member-submit-btn"
-          disabled={submitting || noCapability}
+          disabled={submitting || noCapability || noTier}
         >
           {submitting
             ? '提交中…'

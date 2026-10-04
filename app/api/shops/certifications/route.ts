@@ -4,7 +4,7 @@ import { getSessionUser } from '@/lib/auth-server';
 export const dynamic = 'force-dynamic';
 
 // ============================================================
-// GET 本店陪玩 + 认证状态
+// GET 本店陪玩 + 所有游戏的授权情况
 // ============================================================
 export async function GET() {
   if (!supabaseAdmin) {
@@ -17,41 +17,69 @@ export async function GET() {
     return Response.json({ ok: false, error: '无权查看' }, { status: 403 });
   }
 
-  const shopId = me.role === 'shop_admin' ? me.shopId : Number(new URL(name, 'http://x').search);
-  // 简化：店长固定看自己的店
+  const shopId = me.role === 'shop_admin' ? me.shopId : null;
+  if (!shopId) {
+    return Response.json({ ok: false, error: '未绑定店铺' }, { status: 400 });
+  }
 
-  const { data: players, error } = await supabaseAdmin
+  // 1. 所有游戏
+  const { data: games } = await supabaseAdmin
+    .from('games')
+    .select('id, name')
+    .eq('status', 'active')
+    .order('sort_order', { ascending: true })
+    .order('id', { ascending: true });
+
+  // 2. 本店陪玩
+  const { data: players } = await supabaseAdmin
     .from('users')
-    .select('id, username, nickname, player_id, shop_id, status')
+    .select('id, username, nickname, player_id')
     .eq('role', 'player')
-    .eq('shop_id', me.shopId || 0);
+    .eq('shop_id', shopId)
+    .order('id', { ascending: true });
 
-  if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
+  const playerUserIds = (players || []).map((p) => p.id);
 
-  // 查认证关系
-  const playerIds = (players || []).map((p) => p.id);
-
+  // 3. 授权记录
   const { data: certs } = await supabaseAdmin
     .from('player_shops')
-    .select('*')
-    .in('player_user_id', playerIds.length > 0 ? playerIds : [-1]);
+    .select('player_user_id, game_id, tier')
+    .in('player_user_id', playerUserIds.length > 0 ? playerUserIds : [-1])
+    .eq('shop_id', shopId)
+    .eq('is_active', true);
 
-  const certMap = new Map((certs || []).map((c) => [c.player_user_id, c]));
+  // 4. 组装
+  const enriched = (players || []).map((p) => {
+    const gameTiers: Record<number, string> = {};
+    (certs || []).forEach((c: any) => {
+      if (c.player_user_id === p.id) {
+        gameTiers[c.game_id] = c.tier;
+      }
+    });
 
-  const enriched = (players || []).map((p) => ({
-    user_id: p.id,
-    username: p.username,
-    nickname: p.nickname,
-    player_id: p.player_id,
-    tier: certMap.get(p.id)?.tier || null,
-  }));
+    return {
+      user_id: p.id,
+      username: p.username,
+      nickname: p.nickname,
+      player_id: p.player_id,
+      game_tiers: (games || []).map((g) => ({
+        game_id: g.id,
+        game_name: g.name,
+        tier: gameTiers[g.id] || null,
+      })),
+    };
+  });
 
-  return Response.json({ ok: true, players: enriched });
+  return Response.json({
+    ok: true,
+    games: games || [],
+    players: enriched,
+  });
 }
 
 // ============================================================
-// POST 授予/取消档位
-// 参数：{ playerUserId, tier }  tier 为 null 表示取消认证
+// POST 授予 / 取消授权
+// 参数：{ playerUserId, gameId, tier }  tier 为 null 表示取消
 // ============================================================
 export async function POST(req: Request) {
   if (!supabaseAdmin) {
@@ -60,15 +88,16 @@ export async function POST(req: Request) {
 
   const me = await getSessionUser();
   if (!me) return Response.json({ ok: false, error: '未登录' }, { status: 401 });
-  if (me.role !== 'shop_admin') {
+  if (me.role !== 'shop_admin' || !me.shopId) {
     return Response.json({ ok: false, error: '仅店长可操作' }, { status: 403 });
   }
 
   const body = await req.json();
   const playerUserId = Number(body.playerUserId);
-  const tier = body.tier;
+  const gameId = Number(body.gameId);
+  const tier = body.tier || null;
 
-  if (!playerUserId) {
+  if (!playerUserId || !gameId) {
     return Response.json({ ok: false, error: '缺少参数' }, { status: 400 });
   }
 
@@ -83,21 +112,14 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, error: '不是本店陪玩' }, { status: 403 });
   }
 
-  // 取消认证
+  // 取消授权
   if (!tier) {
     await supabaseAdmin
       .from('player_shops')
       .delete()
       .eq('player_user_id', playerUserId)
-      .eq('shop_id', me.shopId);
-
-    // 同步 players 表 tier
-    if (player.player_id) {
-      await supabaseAdmin
-        .from('players')
-        .update({ tier: '娱乐' })
-        .eq('id', player.player_id);
-    }
+      .eq('shop_id', me.shopId)
+      .eq('game_id', gameId);
 
     return Response.json({ ok: true });
   }
@@ -114,28 +136,26 @@ export async function POST(req: Request) {
     .select('id')
     .eq('player_user_id', playerUserId)
     .eq('shop_id', me.shopId)
+    .eq('game_id', gameId)
     .maybeSingle();
 
   if (existing) {
     await supabaseAdmin
       .from('player_shops')
-      .update({ tier, is_active: true, updated_at: new Date().toISOString() })
+      .update({
+        tier,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', existing.id);
   } else {
     await supabaseAdmin.from('player_shops').insert({
       player_user_id: playerUserId,
       shop_id: me.shopId,
+      game_id: gameId,
       tier,
       is_active: true,
     });
-  }
-
-  // 同步 players.tier
-  if (player.player_id) {
-    await supabaseAdmin
-      .from('players')
-      .update({ tier })
-      .eq('id', player.player_id);
   }
 
   return Response.json({ ok: true });

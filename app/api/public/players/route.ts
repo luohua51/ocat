@@ -10,7 +10,6 @@ export async function GET() {
   }
 
   try {
-    // 1. 陪玩基础信息
     const { data: players } = await supabaseAdmin
       .from('players')
       .select('id, name, avatar, tier, weekly_orders, rating, status, accept_freelance')
@@ -20,19 +19,17 @@ export async function GET() {
     if (!players || players.length === 0) {
       return Response.json(
         { ok: true, players: [] },
-        { headers: { 'Cache-Control': 'no-store, must-revalidate' } }
+        { headers: { 'Cache-Control': 'no-store' } }
       );
     }
 
     const ids = players.map((p) => p.id);
 
-    // 2. 资料
     const { data: profiles } = await supabaseAdmin
       .from('player_profiles')
       .select('player_id, signature')
       .in('player_id', ids);
 
-    // 3. 能力
     const { data: capabilities } = await supabaseAdmin
       .from('player_capabilities')
       .select('player_id, game_id, tier')
@@ -46,57 +43,75 @@ export async function GET() {
       .select('id, name')
       .in('id', gameIds.length > 0 ? gameIds : [-1]);
 
-    // 4. 散陪价
+    const gameMap = new Map((gamesData || []).map((g: any) => [g.id, g.name]));
+
     const { data: prices } = await supabaseAdmin
       .from('player_prices')
       .select('player_id, price_per_hour, tier')
       .in('player_id', ids)
       .eq('is_active', true);
 
-    // 5. 店铺
     const { data: shops } = await supabaseAdmin
       .from('shops')
       .select('id, name')
       .eq('status', 'active');
 
-    const shopMap = new Map((shops || []).map((s) => [s.id, s.name]));
+    const shopMap = new Map((shops || []).map((s: any) => [s.id, s.name]));
 
-    // 6. 用户-陪玩关联
     const { data: playerUsers } = await supabaseAdmin
       .from('users')
       .select('id, player_id, shop_id')
       .in('player_id', ids)
       .eq('role', 'player');
 
-    // 7. 认证
-    const { data: playerShops } = await supabaseAdmin
+    // 查所有认证
+    const playerUserIds = (playerUsers || []).map((u: any) => u.id);
+
+    const { data: certs } = await supabaseAdmin
       .from('player_shops')
-      .select('player_user_id, shop_id, tier')
+      .select('player_user_id, shop_id, game_id, tier')
+      .in(
+        'player_user_id',
+        playerUserIds.length > 0 ? playerUserIds : [-1]
+      )
       .eq('is_active', true);
 
-    // 8. 所有店铺价
-    const shopIds = [
-      ...new Set(
-        (playerUsers || [])
-          .map((u: any) => u.shop_id)
-          .filter((x: any) => !!x)
-      ),
+    const userMap = new Map((playerUsers || []).map((u: any) => [u.id, u.player_id]));
+
+    // 按 player_id 分组认证
+    const certsByPlayer = new Map<
+      number,
+      { shopId: number; gameId: number; tier: string }[]
+    >();
+
+    (certs || []).forEach((c: any) => {
+      const pid = userMap.get(c.player_user_id);
+      if (!pid) return;
+      if (!certsByPlayer.has(pid)) certsByPlayer.set(pid, []);
+      certsByPlayer.get(pid)!.push({
+        shopId: c.shop_id,
+        gameId: c.game_id,
+        tier: c.tier,
+      });
+    });
+
+    const shopPricesIds = [
+      ...new Set((playerUsers || []).map((u: any) => u.shop_id).filter(Boolean)),
     ];
 
     const { data: shopPrices } = await supabaseAdmin
       .from('shop_prices')
       .select('shop_id, game_id, price_per_hour')
-      .in('shop_id', shopIds.length > 0 ? shopIds : [-1])
+      .in('shop_id', shopPricesIds.length > 0 ? shopPricesIds : [-1])
       .eq('is_active', true);
 
-    // 9. 组装
     const result = players.map((p) => {
       const prof = (profiles || []).find((x: any) => x.player_id === p.id);
 
       const playerGames = (capabilities || [])
         .filter((c: any) => c.player_id === p.id)
-        .map((c: any) => (gamesData || []).find((g: any) => g.id === c.game_id)?.name)
-        .filter(Boolean);
+        .map((c: any) => gameMap.get(c.game_id))
+        .filter((x): x is string => !!x);
       const uniqueGames = [...new Set(playerGames)];
 
       const playerGameIds = (capabilities || [])
@@ -109,6 +124,42 @@ export async function GET() {
 
       const userInfo = (playerUsers || []).find((u: any) => u.player_id === p.id);
 
+      // ============ 身份 ============
+      const identities: any[] = [];
+
+      // 店铺认证（按游戏）
+      const myCerts = certsByPlayer.get(p.id) || [];
+      myCerts.forEach((c) => {
+        const shopName = shopMap.get(c.shopId);
+        const gameName = gameMap.get(c.gameId);
+        if (shopName && gameName) {
+          identities.push({
+            type: 'shop',
+            shopName,
+            gameName,
+            tier: c.tier,
+            label: `${shopName}·${gameName}·${c.tier}`,
+          });
+        }
+      });
+
+      // 散陪身份
+      const hasFreelance =
+        p.accept_freelance &&
+        (prices || []).some((x: any) => x.player_id === p.id);
+
+      if (hasFreelance) {
+        const freelanceTier =
+          (prices || []).find((x: any) => x.player_id === p.id)?.tier || '娱乐';
+        identities.push({
+          type: 'freelance',
+          shopName: '散陪',
+          tier: freelanceTier,
+          label: `散陪·${freelanceTier}`,
+        });
+      }
+
+      // ============ 价格 ============
       const shopPricesList: number[] = [];
       if (userInfo?.shop_id) {
         (shopPrices || []).forEach((sp: any) => {
@@ -121,72 +172,39 @@ export async function GET() {
         });
       }
 
-      const identities: any[] = [];
-
-      if (userInfo) {
-        const certs = (playerShops || []).filter(
-          (ps: any) => ps.player_user_id === userInfo.id
-        );
-
-        if (certs.length > 0) {
-          certs.forEach((c: any) => {
-            const shopName = shopMap.get(c.shop_id);
-            if (shopName) {
-              identities.push({
-                type: 'shop',
-                shopName,
-                tier: c.tier,
-                label: `${shopName}.${c.tier}`,
-              });
-            }
-          });
-        } else if (userInfo.shop_id) {
-          const shopName = shopMap.get(userInfo.shop_id);
-          if (shopName) {
-            identities.push({
-              type: 'shop',
-              shopName,
-              tier: p.tier,
-              label: `${shopName}.${p.tier}`,
-            });
-          }
-        }
-      }
-
-      const hasFreelance =
-        p.accept_freelance &&
-        (prices || []).some((x: any) => x.player_id === p.id);
-
-      if (hasFreelance) {
-        const freelanceTier =
-          (prices || []).find((x: any) => x.player_id === p.id)?.tier || p.tier;
-        identities.push({
-          type: 'freelance',
-          shopName: '散陪',
-          tier: freelanceTier,
-          label: `散陪.${freelanceTier}`,
-        });
-      }
-
       const allPrices = [
         ...(p.accept_freelance ? freelancePrices : []),
         ...shopPricesList,
       ];
       const displayPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0;
 
-      const mainIdentity = identities[0];
+      // 主档位：取该玩家所有认证里最高的
+      const TIER_RANK: Record<string, number> = {
+        明星: 0,
+        魔王: 1,
+        金牌: 2,
+        技术: 3,
+        娱乐: 4,
+      };
+      let mainTier = p.tier;
+      if (myCerts.length > 0) {
+        const sortedCerts = [...myCerts].sort(
+          (a, b) => (TIER_RANK[a.tier] ?? 4) - (TIER_RANK[b.tier] ?? 4)
+        );
+        mainTier = sortedCerts[0].tier;
+      }
 
       return {
         id: p.id,
         name: p.name,
         avatar: p.avatar || '',
-        tier: mainIdentity?.tier || p.tier,
+        tier: mainTier,
         games: uniqueGames,
         price: displayPrice,
         signature: prof?.signature || '',
         weeklyOrders: p.weekly_orders || 0,
         rating: p.rating || 100,
-        shopName: mainIdentity?.shopName || '',
+        shopName: identities[0]?.shopName || '',
         status: p.status || 'offline',
         identities,
       };
@@ -197,8 +215,6 @@ export async function GET() {
       {
         headers: {
           'Cache-Control': 'no-store, no-cache, must-revalidate',
-          Pragma: 'no-cache',
-          Expires: '0',
         },
       }
     );
