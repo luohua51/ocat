@@ -2,17 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { TIER_COLORS } from '@/lib/mock';
 import { proxyImage } from '@/lib/image';
 
 export default function PlayerDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const playerId = Number(params?.id);
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [booking, setBooking] = useState(false);
 
   useEffect(() => {
     if (!playerId) return;
@@ -48,6 +50,30 @@ export default function PlayerDetailPage() {
       cancelled = true;
     };
   }, [playerId]);
+
+  async function handleBook() {
+    if (booking) return;
+    setBooking(true);
+
+    const target = `/member/create?playerId=${playerId}`;
+
+    try {
+      const res = await fetch('/api/auth/session', { cache: 'no-store' });
+      const s = await res.json();
+
+      if (s.ok && s.user && s.user.role === 'member') {
+        // 已登录会员 → 直接进下单页
+        router.push(target);
+      } else {
+        // 未登录 → 跳登录页带 redirect
+        router.push(`/login?redirect=${encodeURIComponent(target)}`);
+      }
+    } catch {
+      router.push(`/login?redirect=${encodeURIComponent(target)}`);
+    } finally {
+      setBooking(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -207,12 +233,19 @@ export default function PlayerDetailPage() {
           </div>
         )}
 
-        <Link
-          href={`/login?redirect=/member/create?playerId=${player.id}`}
+        <button
+          onClick={handleBook}
+          disabled={booking}
           className="book-btn"
+          style={{
+            border: 'none',
+            cursor: booking ? 'wait' : 'pointer',
+            fontFamily: 'inherit',
+            width: '100%',
+          }}
         >
-          🔥 立即预约
-        </Link>
+          {booking ? '跳转中…' : '🔥 立即预约'}
+        </button>
       </div>
     </Shell>
   );

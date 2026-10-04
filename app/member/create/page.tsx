@@ -1,20 +1,46 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createOrder } from '@/lib/order';
-import { fetchPlayers, type PlayerDisplay } from '@/lib/db';
-import { fetchGames, type Game } from '@/lib/game';
+import { fetchCurrentUser, type User } from '@/lib/auth';
+
+// 展示顺序：从低到高
+const ALL_TIERS = ['娱乐', '技术', '金牌', '魔王', '明星'];
+// 数值越小等级越高
+const TIER_RANK: Record<string, number> = {
+  娱乐: 4,
+  技术: 3,
+  金牌: 2,
+  魔王: 1,
+  明星: 0,
+};
+
+type Player = {
+  id: number;
+  name: string;
+  avatar: string;
+  tier: string;
+  capabilities: { gameId: number; tier: string }[];
+};
+
+type Game = {
+  id: number;
+  name: string;
+  ranks: string[];
+};
 
 function CreateContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const playerIdFromUrl = searchParams.get('playerId');
 
-  const [players, setPlayers] = useState<PlayerDisplay[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [checking, setChecking] = useState(true);
+
+  const [players, setPlayers] = useState<Player[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
 
   const [playerId, setPlayerId] = useState<number>(
     playerIdFromUrl ? Number(playerIdFromUrl) : 0
@@ -25,13 +51,45 @@ function CreateContent() {
   const [hours, setHours] = useState(1);
   const [remark, setRemark] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
+  // 1. 检查登录
+  useEffect(() => {
+    fetchCurrentUser().then((u) => {
+      if (!u || u.role !== 'member') {
+        const redirectPath = playerIdFromUrl
+          ? `/member/create?playerId=${playerIdFromUrl}`
+          : '/member/create';
+        router.replace(
+          `/login?redirect=${encodeURIComponent(redirectPath)}`
+        );
+        return;
+      }
+      setUser(u);
+      setChecking(false);
+    });
+  }, [router, playerIdFromUrl]);
+
+  // 2. 加载数据
   useEffect(() => {
     async function load() {
-      const [p, g] = await Promise.all([fetchPlayers(), fetchGames()]);
-      setPlayers(p);
-      setGames(g);
-      setLoading(false);
+      try {
+        const res = await fetch('/api/public/order-options', {
+          cache: 'no-store',
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          setError(data.error || '加载失败');
+          setLoading(false);
+          return;
+        }
+        setPlayers(data.players || []);
+        setGames(data.games || []);
+        setLoading(false);
+      } catch (err: any) {
+        setError(err?.message || '网络错误');
+        setLoading(false);
+      }
     }
     load();
   }, []);
@@ -39,21 +97,65 @@ function CreateContent() {
   const player = players.find((p) => p.id === playerId);
   const selectedGame = games.find((g) => g.id === gameId);
   const isDesignated = playerId > 0;
-  const availableRanks: string[] = (selectedGame?.ranks || []) as string[];
 
+  // 3. 可用游戏
+  const availableGames = useMemo(() => {
+    if (!isDesignated) return games; // 不指定 → 全部
+    if (!player) return [];
+    const gameIds = [...new Set(player.capabilities.map((c) => c.gameId))];
+    return games.filter((g) => gameIds.includes(g.id));
+  }, [isDesignated, player, games]);
+
+  // 4. 可用档位（向下兼容）
+  const availableTiers = useMemo(() => {
+    if (!isDesignated) return ALL_TIERS; // 不指定 → 全部
+    if (!player || !gameId) return [];
+    const capTiers = player.capabilities
+      .filter((c) => c.gameId === gameId)
+      .map((c) => c.tier);
+    if (capTiers.length === 0) return [];
+    // 取能力里最高的档位（rank 最小）
+    const highestRank = Math.min(...capTiers.map((t) => TIER_RANK[t] ?? 4));
+    // 向下取：rank >= highestRank 的都可用
+    return ALL_TIERS.filter((t) => (TIER_RANK[t] ?? 4) >= highestRank);
+  }, [isDesignated, player, gameId]);
+
+  // 5. 可用段位
+  const availableRanks = useMemo(() => {
+    if (!selectedGame) return [];
+    return selectedGame.ranks || [];
+  }, [selectedGame]);
+
+  // 6. 陪玩换了 → 自动选第一个可用游戏
   useEffect(() => {
+    if (!isDesignated) return;
+    if (availableGames.length > 0) {
+      setGameId(availableGames[0].id);
+    } else {
+      setGameId(0);
+    }
+    setTier('娱乐');
     setBossRank('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerId, isDesignated]);
+
+  // 7. 游戏变了 → 校正档位、重置段位
+  useEffect(() => {
+    if (availableTiers.length > 0 && !availableTiers.includes(tier)) {
+      setTier(availableTiers[0]);
+    }
+    setBossRank('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId]);
 
-  const unitPrice = 30;
-  const total = isDesignated ? unitPrice * hours : 0;
-
+  // 8. 提交
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
 
     if (!gameId) return setError('请选择游戏');
-    if (!bossRank.trim()) return setError('请选择你的段位');
+    if (!availableTiers.includes(tier)) return setError('档位不可用');
+    if (!bossRank) return setError('请选择你的段位');
     if (hours <= 0) return setError('时长必须大于 0');
 
     setSubmitting(true);
@@ -61,22 +163,25 @@ function CreateContent() {
       playerId: isDesignated ? playerId : 0,
       gameId,
       tier,
-      bossRank: bossRank.trim(),
+      bossRank,
       durationHours: hours,
       identityType: 'freelance',
       remark,
     });
+    setSubmitting(false);
 
     if (!result.ok) {
       setError(result.error || '下单失败');
-      setSubmitting(false);
       return;
     }
-
     router.push('/member/orders/' + result.order!.id);
   }
 
+  if (checking) return <div className="member-empty">加载中…</div>;
+  if (!user) return null;
   if (loading) return <div className="member-empty">加载中…</div>;
+
+  const noCapability = isDesignated && availableGames.length === 0;
 
   return (
     <>
@@ -86,6 +191,7 @@ function CreateContent() {
       </div>
 
       <form onSubmit={handleSubmit} className="member-create-form">
+        {/* 选择陪玩 */}
         <div className="member-form-block">
           <div className="member-form-label">选择陪玩</div>
           <select
@@ -97,72 +203,109 @@ function CreateContent() {
             {players.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}（{p.tier}）
-                {p.identities.length > 0
-                  ? ` · ${p.identities.map((i) => i.label).join(' ')}`
-                  : ''}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="member-form-block">
-          <div className="member-form-label">选择游戏</div>
-          <div className="member-radio-row">
-            {games.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                className={'member-radio' + (gameId === g.id ? ' active' : '')}
-                onClick={() => setGameId(g.id)}
-              >
-                {g.name}
-              </button>
-            ))}
+        {/* 未开放接单提示 */}
+        {noCapability && (
+          <div className="member-create-error" style={{ marginBottom: '1rem' }}>
+            该陪玩还没开放接单能力，暂时无法预约
           </div>
-        </div>
+        )}
 
-        <div className="member-form-block">
-          <div className="member-form-label">选择档位</div>
-          <div className="member-radio-row">
-            {['娱乐', '技术'].map((t) => (
-              <button
-                key={t}
-                type="button"
-                className={'member-radio' + (tier === t ? ' active' : '')}
-                onClick={() => setTier(t)}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="member-form-block">
-          <div className="member-form-label">你的段位</div>
-          {!selectedGame ? (
-            <div className="member-empty" style={{ padding: '0.8rem', fontSize: '0.85rem' }}>
-              请先选择游戏
-            </div>
-          ) : availableRanks.length === 0 ? (
-            <div className="member-empty" style={{ padding: '0.8rem', fontSize: '0.85rem' }}>
-              该游戏没有段位
-            </div>
-          ) : (
+        {/* 选择游戏 */}
+        {!noCapability && (
+          <div className="member-form-block">
+            <div className="member-form-label">选择游戏</div>
             <div className="member-radio-row">
-              {availableRanks.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  className={'member-radio' + (bossRank === r ? ' active' : '')}
-                  onClick={() => setBossRank(r)}
-                >
-                  {r}
-                </button>
-              ))}
+              {games.map((g) => {
+                const enabled = availableGames.some((ag) => ag.id === g.id);
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    disabled={!enabled}
+                    className={
+                      'member-radio' + (gameId === g.id ? ' active' : '')
+                    }
+                    style={
+                      !enabled
+                        ? { opacity: 0.3, cursor: 'not-allowed' }
+                        : undefined
+                    }
+                    onClick={() => enabled && setGameId(g.id)}
+                  >
+                    {g.name}
+                  </button>
+                );
+              })}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
+        {/* 选择档位 */}
+        {!noCapability && gameId > 0 && (
+          <div className="member-form-block">
+            <div className="member-form-label">选择档位</div>
+            <div className="member-radio-row">
+              {ALL_TIERS.map((t) => {
+                const enabled = availableTiers.includes(t);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    disabled={!enabled}
+                    className={'member-radio' + (tier === t ? ' active' : '')}
+                    style={
+                      !enabled
+                        ? { opacity: 0.3, cursor: 'not-allowed' }
+                        : undefined
+                    }
+                    onClick={() => enabled && setTier(t)}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 选择段位 */}
+        {!noCapability && gameId > 0 && (
+          <div className="member-form-block">
+            <div className="member-form-label">
+              你的段位{selectedGame ? `（${selectedGame.name}）` : ''}
+            </div>
+            {availableRanks.length === 0 ? (
+              <div
+                className="member-empty"
+                style={{ padding: '0.8rem', fontSize: '0.85rem' }}
+              >
+                该游戏没有段位
+              </div>
+            ) : (
+              <div className="member-radio-row">
+                {availableRanks.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    className={
+                      'member-radio' + (bossRank === r ? ' active' : '')
+                    }
+                    onClick={() => setBossRank(r)}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 时长 */}
         <div className="member-form-block">
           <div className="member-form-label">时长（小时）</div>
           <div className="member-radio-row">
@@ -179,6 +322,7 @@ function CreateContent() {
           </div>
         </div>
 
+        {/* 备注 */}
         <div className="member-form-block">
           <div className="member-form-label">备注（可选）</div>
           <input
@@ -190,25 +334,18 @@ function CreateContent() {
           />
         </div>
 
-        <div className="member-create-summary">
-          <div>
-            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>单价</div>
-            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#fff' }}>
-              {isDesignated ? `¥${unitPrice.toFixed(2)}/时` : '待定'}
-            </div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>总价</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#FF7A00' }}>
-              {isDesignated ? `¥${total.toFixed(2)}` : '待接单后确定'}
-            </div>
-          </div>
-        </div>
-
         {error && <div className="member-create-error">{error}</div>}
 
-        <button type="submit" className="member-submit-btn" disabled={submitting}>
-          {submitting ? '提交中…' : isDesignated ? '提交订单' : '发布到抢单池'}
+        <button
+          type="submit"
+          className="member-submit-btn"
+          disabled={submitting || noCapability}
+        >
+          {submitting
+            ? '提交中…'
+            : isDesignated
+            ? '提交订单'
+            : '发布到抢单池'}
         </button>
       </form>
     </>
@@ -217,7 +354,11 @@ function CreateContent() {
 
 export default function MemberCreatePage() {
   return (
-    <Suspense fallback={<div style={{ color: '#fff', padding: '2rem' }}>加载中…</div>}>
+    <Suspense
+      fallback={
+        <div style={{ color: '#fff', padding: '2rem' }}>加载中…</div>
+      }
+    >
       <CreateContent />
     </Suspense>
   );

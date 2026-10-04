@@ -15,35 +15,30 @@ const MENU = [
   { href: '/member/profile', label: '个人资料', icon: '👤' },
 ];
 
-export default function MemberLayout({ children }: { children: React.ReactNode }) {
+export default function MemberLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const [unread, setUnread] = useState(0);
 
+  // 只拉用户，不跳转
   useEffect(() => {
     fetchCurrentUser().then((u) => {
-      if (!u) {
-        router.replace('/login?redirect=' + pathname);
-        return;
-      }
-      if (u.role !== 'member') {
-        router.replace('/login');
-        return;
-      }
-      setUser(u);
-      setLoading(false);
+      if (u) setUser(u);
     });
-  }, [router, pathname]);
+  }, []);
 
-  // 轮询未读消息数
+  // 未读轮询
   useEffect(() => {
     if (!user) return;
 
     async function loadUnread() {
       const list = await fetchConversations();
-      const total = list.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+      const total = list.reduce((s, c) => s + (c.unreadCount || 0), 0);
       setUnread(total);
     }
 
@@ -52,8 +47,9 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
     return () => clearInterval(timer);
   }, [user]);
 
-  if (loading || !user) {
-    return <div style={{ color: '#fff', padding: '2rem', textAlign: 'center' }}>加载中…</div>;
+  async function handleLogout() {
+    await logout();
+    router.push('/');
   }
 
   return (
@@ -87,14 +83,10 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
         </nav>
 
         <div className="member-user">
-          <div className="member-user-name">{user.nickname}</div>
-          <button
-            className="member-logout"
-            onClick={async () => {
-              await logout();
-              router.push('/');
-            }}
-          >
+          <div className="member-user-name">
+            {user?.nickname || '未登录'}
+          </div>
+          <button className="member-logout" onClick={handleLogout}>
             退出登录
           </button>
         </div>
