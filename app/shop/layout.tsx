@@ -10,6 +10,8 @@ const MENU = [
   { href: '/shop/players', label: '陪玩管理', icon: '👥' },
   { href: '/shop/prices', label: '价格管理', icon: '💰' },
   { href: '/shop/certifications', label: '限定认证', icon: '🏆' },
+  { href: '/shop/benefits', label: '权益/须知', icon: '📝' },
+  { href: '/shop/profile', label: '店铺资料', icon: '🏪' },
 ];
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {

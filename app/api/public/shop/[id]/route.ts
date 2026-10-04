@@ -72,12 +72,20 @@ export async function GET(
       .eq('is_active', true)
       .in('player_user_id', userIds.length > 0 ? userIds : [-1]);
 
-    const userMap = new Map((playerUsers || []).map((u: any) => [u.id, u.player_id]));
+    const userMap = new Map(
+      (playerUsers || []).map((u: any) => [u.id, u.player_id])
+    );
 
     // 按游戏分组陪玩
     const playersByGame: Record<
       number,
-      { id: number; name: string; avatar: string; tier: string; certTier: string }[]
+      {
+        id: number;
+        name: string;
+        avatar: string;
+        tier: string;
+        certTier: string;
+      }[]
     > = {};
 
     (games || []).forEach((g: any) => {
@@ -85,7 +93,6 @@ export async function GET(
     });
 
     (players || []).forEach((p: any) => {
-      // 该玩家所有认证
       const playerCerts: { gameId: number; tier: string }[] = [];
       (certs || []).forEach((c: any) => {
         const pid = userMap.get(c.player_user_id);
@@ -94,7 +101,6 @@ export async function GET(
         }
       });
 
-      // 加入每个游戏
       playerCerts.forEach((pc) => {
         if (playersByGame[pc.gameId]) {
           playersByGame[pc.gameId].push({
@@ -122,15 +128,19 @@ export async function GET(
         gameId: g.id,
         gameName: g.name,
         gameLogo: g.logo || '',
-        benefit: shop.game_benefits?.[String(g.id)] || '',
+        benefit: (shop.game_benefits as any)?.[String(g.id)] || '',
+        notice: (shop.game_notices as any)?.[String(g.id)] || '',
         prices: gamePrices,
         players: playersByGame[g.id] || [],
       };
     });
 
-    // 过滤掉没有任何内容的分区
     const activeSections = gameSections.filter(
-      (s) => s.prices.length > 0 || s.players.length > 0 || s.benefit
+      (s) =>
+        s.prices.length > 0 ||
+        s.players.length > 0 ||
+        s.benefit ||
+        s.notice
     );
 
     return Response.json(
@@ -159,4 +169,4 @@ export async function GET(
       { status: 500 }
     );
   }
-}   
+}

@@ -25,6 +25,7 @@ type GameSection = {
   gameName: string;
   gameLogo: string;
   benefit: string;
+  notice: string;
   prices: PriceItem[];
   players: PlayerItem[];
 };
@@ -167,11 +168,23 @@ export default function ShopPage() {
               {/* 老板权益 */}
               {current.benefit && (
                 <div className="shop-section">
-                  <div className="shop-section-title">
-                    🎁 老板权益
-                  </div>
+                  <div className="shop-section-title">🎁 老板权益</div>
                   <div className="shop-benefit">
                     {current.benefit.split('\n').map((line, i) => (
+                      <div key={i} className="shop-benefit-line">
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 老板须知 */}
+              {current.notice && (
+                <div className="shop-section">
+                  <div className="shop-section-title">📢 老板须知</div>
+                  <div className="shop-benefit shop-notice">
+                    {current.notice.split('\n').map((line, i) => (
                       <div key={i} className="shop-benefit-line">
                         {line}
                       </div>
@@ -247,7 +260,8 @@ export default function ShopPage() {
 
               {current.prices.length === 0 &&
                 current.players.length === 0 &&
-                !current.benefit && (
+                !current.benefit &&
+                !current.notice && (
                   <div className="empty">该游戏暂无内容</div>
                 )}
             </div>
