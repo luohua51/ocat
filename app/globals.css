@@ -4426,3 +4426,250 @@ button {
   align-items: center;
   flex-wrap: wrap;
 }
+
+/* ============================================================
+   店铺主页
+   ============================================================ */
+.shop-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  padding: 1.5rem 1.8rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.shop-hero-logo {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #FF7A00, #F97316);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: #fff;
+  font-weight: 800;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.shop-hero-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shop-hero-info {
+  flex: 1;
+  min-width: 15rem;
+}
+
+.shop-hero-name {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 0.3rem;
+}
+
+.shop-hero-desc {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.6rem;
+}
+
+.shop-hero-meta {
+  display: flex;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* 游戏 Tab */
+.shop-tabs {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.shop-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.shop-tab:hover {
+  border-color: #FF7A00;
+  color: #FF7A00;
+}
+
+.shop-tab.active {
+  background: linear-gradient(135deg, #FF7A00, #F97316);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(255, 122, 0, 0.35);
+}
+
+.shop-tab-logo {
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 0.25rem;
+  object-fit: cover;
+}
+
+/* 内容区 */
+.shop-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.shop-section {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+  padding: 1.3rem 1.5rem;
+}
+
+.shop-section-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 1rem;
+  padding-left: 0.6rem;
+  border-left: 3px solid #FF7A00;
+}
+
+/* 老板权益 */
+.shop-benefit {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.9;
+}
+
+.shop-benefit-line {
+  white-space: pre-wrap;
+}
+
+/* 价格表 */
+.shop-price-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.shop-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.7rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.shop-price-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.shop-price-tier {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 122, 0, 0.15);
+  color: #FF7A00;
+}
+
+.shop-price-rank {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.shop-price-right {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #34d399;
+}
+
+.shop-price-unit {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+  margin-left: 0.15rem;
+}
+
+/* 陪玩卡片 */
+.shop-player-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  gap: 0.8rem;
+}
+
+.shop-player-card {
+  background: #fff;
+  border-radius: 0.8rem;
+  padding: 0.8rem 0.5rem;
+  text-align: center;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.shop-player-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 122, 0, 0.2);
+}
+
+.shop-player-avatar {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFF3E6, #FFE0C2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: #FF7A00;
+  font-weight: 800;
+  overflow: hidden;
+}
+
+.shop-player-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shop-player-name {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.shop-player-tier {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fff;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+}

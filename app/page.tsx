@@ -84,7 +84,11 @@ export default function HomePage() {
               <Link key={p.id} href={`/players/${p.id}`} className="card">
                 <div className="avatar">
                   {p.avatar ? (
-                    <img src={proxyImage(p.avatar)} alt={p.name} loading="lazy" />
+                    <img
+                      src={proxyImage(p.avatar)}
+                      alt={p.name}
+                      loading="lazy"
+                    />
                   ) : (
                     p.name.charAt(0)
                   )}
@@ -107,7 +111,8 @@ export default function HomePage() {
                       padding: '0.15rem 0.5rem',
                       borderRadius: '999px',
                       background:
-                        TIER_COLORS[p.tier as keyof typeof TIER_COLORS] || '#6b7280',
+                        TIER_COLORS[p.tier as keyof typeof TIER_COLORS] ||
+                        '#6b7280',
                       whiteSpace: 'nowrap',
                     }}
                   >
@@ -117,17 +122,36 @@ export default function HomePage() {
 
                 {p.identities.length > 0 && (
                   <div className="card-identities">
-                    {p.identities.map((idn, i) => (
-                      <span
-                        key={i}
-                        className={
-                          'identity-tag ' + (idn.type === 'shop' ? 'shop' : 'freelance')
-                        }
-                        style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem' }}
-                      >
-                        {idn.label}
-                      </span>
-                    ))}
+                    {p.identities.map((idn: any, i: number) =>
+                      idn.type === 'shop' && idn.shopId ? (
+                        <Link
+                          key={i}
+                          href={`/shops/${idn.shopId}`}
+                          className="identity-tag shop"
+                          style={{
+                            fontSize: '0.68rem',
+                            padding: '0.15rem 0.5rem',
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {idn.label}
+                        </Link>
+                      ) : (
+                        <span
+                          key={i}
+                          className={
+                            'identity-tag ' +
+                            (idn.type === 'shop' ? 'shop' : 'freelance')
+                          }
+                          style={{
+                            fontSize: '0.68rem',
+                            padding: '0.15rem 0.5rem',
+                          }}
+                        >
+                          {idn.label}
+                        </span>
+                      )
+                    )}
                   </div>
                 )}
 
