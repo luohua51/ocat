@@ -143,9 +143,10 @@ export async function POST(
   const d = calcDiscount(baseAmount);
   const finalAmount = d.finalAmount;
 
-  const platformFee = baseAmount * platformFeeRate;
-  const shopFee = baseAmount * shopFeeRate;
-  const playerIncome = baseAmount - platformFee - shopFee;
+  // 平台、店铺、陪玩收入全部按折后价算
+  const platformFee = finalAmount * platformFeeRate;
+  const shopFee = finalAmount * shopFeeRate;
+  const playerIncome = finalAmount - platformFee - shopFee;
 
   const { data: wallet } = await supabaseAdmin
     .from('wallets')
