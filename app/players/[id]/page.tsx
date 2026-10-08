@@ -218,7 +218,6 @@ export default function PlayerDetailPage() {
           </div>
         )}
 
-        {/* 声音特点 */}
         {voiceTags.length > 0 && (
           <div className="section">
             <div className="section-title">🎤 声音特点</div>
@@ -232,7 +231,6 @@ export default function PlayerDetailPage() {
           </div>
         )}
 
-        {/* 战斗风格 */}
         {styleTags.length > 0 && (
           <div className="section">
             <div className="section-title">⚔️ 战斗风格</div>
@@ -252,13 +250,6 @@ export default function PlayerDetailPage() {
             <div style={{ color: '#F97316', fontWeight: 600 }}>
               ⏰ {profile.available_time}
             </div>
-          </div>
-        )}
-
-        {profile.rank_text && (
-          <div className="section">
-            <div className="section-title">段位</div>
-            <div className="detail-text">{profile.rank_text}</div>
           </div>
         )}
 
