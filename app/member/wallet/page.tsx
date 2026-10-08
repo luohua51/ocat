@@ -28,7 +28,6 @@ export default function MemberWalletPage() {
   const stats = [
     { label: '余额', value: `¥${wallet.balance.toFixed(2)}`, color: '#FF7A00' },
     { label: '累计充值', value: `¥${wallet.totalIncome.toFixed(2)}`, color: '#34d399' },
-    { label: '累计提现', value: `¥${wallet.totalWithdrawn.toFixed(2)}`, color: '#a78bfa' },
   ];
 
   return (
@@ -39,7 +38,7 @@ export default function MemberWalletPage() {
           我的钱包
         </h1>
         <p style={{ margin: '0.4rem 0 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>
-          会员充值、提现请联系管理员
+          会员充值请联系管理员
         </p>
       </div>
 
@@ -137,7 +136,7 @@ export default function MemberWalletPage() {
           >
             <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>联系管理员</h3>
             <p style={{ margin: '0 0 0.8rem', fontSize: '0.82rem', color: 'rgba(255,255,255,0.6)' }}>
-              会员充值、陪玩提现请直接联系管理员
+              会员充值请直接联系管理员
             </p>
             <img
               src="/kefu.jpg"
