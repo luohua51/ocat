@@ -7,11 +7,11 @@ export default function ShopPlayersPage() {
   const [list, setList] = useState<User[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [newName, setNewName] = useState('');
   const [newAccount, setNewAccount] = useState('');
   const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchUsers({ role: 'player' }).then(setList);
@@ -54,7 +54,9 @@ export default function ShopPlayersPage() {
           `· 该陪玩变成散陪\n` +
           `· 本店的认证会被清空\n` +
           `· 账号不会被删除，他还能继续用\n` +
-          `· 首页依然能看到他`
+          `· 首页依然能看到他\n\n` +
+          `如需从平台彻底删除该陪玩，\n` +
+          `请联系超级管理员操作。`
       )
     ) {
       return;
@@ -215,6 +217,8 @@ export default function ShopPlayersPage() {
         · 账号不会删除，陪玩可以继续用
         <br />
         · 首页/详情页依然能看到他（散陪身份）
+        <br />
+        · 如需从平台彻底删除，请联系超级管理员
       </div>
     </>
   );
