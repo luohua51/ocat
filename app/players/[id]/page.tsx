@@ -126,6 +126,8 @@ export default function PlayerDetailPage() {
   const profile = data.profile || {};
   const games = Array.isArray(data.games) ? data.games : [];
   const certList = Array.isArray(data.certList) ? data.certList : [];
+  const voiceTags = Array.isArray(data.voiceTags) ? data.voiceTags : [];
+  const styleTags = Array.isArray(data.styleTags) ? data.styleTags : [];
   const minPrice = Number(data.minPrice) || 0;
   const hasFreelance = !!data.hasFreelance;
 
@@ -210,6 +212,34 @@ export default function PlayerDetailPage() {
               {games.map((g: string) => (
                 <span key={g} className="tag">
                   {g}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 声音特点 */}
+        {voiceTags.length > 0 && (
+          <div className="section">
+            <div className="section-title">🎤 声音特点</div>
+            <div className="tag-row">
+              {voiceTags.map((t: string) => (
+                <span key={t} className="tag voice-tag">
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 战斗风格 */}
+        {styleTags.length > 0 && (
+          <div className="section">
+            <div className="section-title">⚔️ 战斗风格</div>
+            <div className="tag-row">
+              {styleTags.map((t: string) => (
+                <span key={t} className="tag style-tag">
+                  {t}
                 </span>
               ))}
             </div>

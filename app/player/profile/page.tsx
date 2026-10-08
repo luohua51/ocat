@@ -10,6 +10,13 @@ import {
   type PlayerFull,
 } from '@/lib/player';
 import { proxyImage } from '@/lib/image';
+import {
+  VOICE_TAGS,
+  STYLE_TAGS,
+  MAX_VOICE,
+  MAX_STYLE,
+  MAX_CUSTOM_LENGTH,
+} from '@/lib/player-tags';
 
 export default function PlayerProfilePage() {
   const [player, setPlayer] = useState<PlayerFull | null>(null);
@@ -26,15 +33,24 @@ export default function PlayerProfilePage() {
   const [availableTime, setAvailableTime] = useState('');
   const [selectedGames, setSelectedGames] = useState<string[]>([]);
 
+  const [voiceTags, setVoiceTags] = useState<string[]>([]);
+  const [styleTags, setStyleTags] = useState<string[]>([]);
+  const [customVoice, setCustomVoice] = useState('');
+  const [customStyle, setCustomStyle] = useState('');
+
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function load() {
-    const [data, g] = await Promise.all([fetchMyPlayerProfile(), fetchGames()]);
+    const [data, g, tagRes] = await Promise.all([
+      fetchMyPlayerProfile(),
+      fetchGames(),
+      fetch('/api/player/tags', { cache: 'no-store' }).then((r) => r.json()),
+    ]);
     setGames(g);
 
     if (data.player) {
       setPlayer(data.player);
-      setName(data.player.name);
+      setName(data.player.name || '');
     }
 
     if (data.profile) {
@@ -48,8 +64,15 @@ export default function PlayerProfilePage() {
     if (data.capabilities.length > 0 && g.length > 0) {
       const names = data.capabilities
         .map((c) => g.find((x) => x.id === c.game_id)?.name)
-        .filter(Boolean) as string[];
+        .filter((x): x is string => !!x);
       setSelectedGames(names);
+    } else {
+      setSelectedGames([]);
+    }
+
+    if (tagRes && tagRes.ok) {
+      setVoiceTags(tagRes.voice || []);
+      setStyleTags(tagRes.style || []);
     }
 
     setLoading(false);
@@ -68,6 +91,66 @@ export default function PlayerProfilePage() {
     }
   }
 
+  function toggleTag(category: 'voice' | 'style', tag: string) {
+    if (category === 'voice') {
+      if (voiceTags.includes(tag)) {
+        setVoiceTags(voiceTags.filter((x) => x !== tag));
+      } else {
+        if (voiceTags.length >= MAX_VOICE) {
+          alert(`声音标签最多 ${MAX_VOICE} 个`);
+          return;
+        }
+        setVoiceTags([...voiceTags, tag]);
+      }
+    } else {
+      if (styleTags.includes(tag)) {
+        setStyleTags(styleTags.filter((x) => x !== tag));
+      } else {
+        if (styleTags.length >= MAX_STYLE) {
+          alert(`风格标签最多 ${MAX_STYLE} 个`);
+          return;
+        }
+        setStyleTags([...styleTags, tag]);
+      }
+    }
+  }
+
+  function addCustom(category: 'voice' | 'style') {
+    if (category === 'voice') {
+      const v = customVoice.trim();
+      if (!v) return;
+      if (v.length > MAX_CUSTOM_LENGTH) {
+        return alert(`自定义标签最多 ${MAX_CUSTOM_LENGTH} 字`);
+      }
+      if (voiceTags.includes(v)) return alert('已经加过');
+      if (voiceTags.length >= MAX_VOICE) {
+        return alert(`声音标签最多 ${MAX_VOICE} 个`);
+      }
+      setVoiceTags([...voiceTags, v]);
+      setCustomVoice('');
+    } else {
+      const v = customStyle.trim();
+      if (!v) return;
+      if (v.length > MAX_CUSTOM_LENGTH) {
+        return alert(`自定义标签最多 ${MAX_CUSTOM_LENGTH} 字`);
+      }
+      if (styleTags.includes(v)) return alert('已经加过');
+      if (styleTags.length >= MAX_STYLE) {
+        return alert(`风格标签最多 ${MAX_STYLE} 个`);
+      }
+      setStyleTags([...styleTags, v]);
+      setCustomStyle('');
+    }
+  }
+
+  function removeTag(category: 'voice' | 'style', tag: string) {
+    if (category === 'voice') {
+      setVoiceTags(voiceTags.filter((x) => x !== tag));
+    } else {
+      setStyleTags(styleTags.filter((x) => x !== tag));
+    }
+  }
+
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -81,14 +164,14 @@ export default function PlayerProfilePage() {
       return;
     }
 
-    const data = await fetchMyPlayerProfile();
-    setPlayer(data.player);
+    await load();
   }
 
   async function handleSave() {
     if (!name.trim()) return alert('请填昵称');
 
     setSaving(true);
+
     const r = await updateMyPlayerProfile({
       name: name.trim(),
       signature,
@@ -97,14 +180,26 @@ export default function PlayerProfilePage() {
       availableTime,
       games: selectedGames,
     });
-    setSaving(false);
 
     if (!r.ok) {
-      alert(r.error || '保存失败');
-      return;
+      setSaving(false);
+      return alert(r.error || '保存资料失败');
+    }
+
+    const tagRes = await fetch('/api/player/tags', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voice: voiceTags, style: styleTags }),
+    });
+    const tagData = await tagRes.json();
+    setSaving(false);
+
+    if (!tagData.ok) {
+      return alert(tagData.error || '保存标签失败');
     }
 
     alert('已保存');
+    await load();
   }
 
   if (loading) {
@@ -197,6 +292,124 @@ export default function PlayerProfilePage() {
                 {g.name}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* 声音特点 */}
+        <div className="player-form-block">
+          <div className="player-form-label">
+            🎤 声音特点（最多 {MAX_VOICE} 个，已选 {voiceTags.length}）
+          </div>
+          <div className="tag-selector">
+            {VOICE_TAGS.map((t) => (
+              <button
+                key={t}
+                type="button"
+                className={
+                  'player-filter-chip' +
+                  (voiceTags.includes(t) ? ' active' : '')
+                }
+                onClick={() => toggleTag('voice', t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {voiceTags.filter((t) => !VOICE_TAGS.includes(t)).length > 0 && (
+            <div className="tag-custom-row" style={{ marginTop: '0.5rem' }}>
+              {voiceTags
+                .filter((t) => !VOICE_TAGS.includes(t))
+                .map((t) => (
+                  <span key={t} className="tag-custom-item">
+                    {t}
+                    <button
+                      type="button"
+                      className="tag-custom-remove"
+                      onClick={() => removeTag('voice', t)}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+            </div>
+          )}
+
+          <div className="tag-custom-input">
+            <input
+              className="player-input"
+              type="text"
+              placeholder={`自定义补充（最多 ${MAX_CUSTOM_LENGTH} 字）`}
+              value={customVoice}
+              onChange={(e) => setCustomVoice(e.target.value)}
+              maxLength={MAX_CUSTOM_LENGTH}
+            />
+            <button
+              type="button"
+              className="player-btn-sm"
+              onClick={() => addCustom('voice')}
+            >
+              添加
+            </button>
+          </div>
+        </div>
+
+        {/* 战斗风格 */}
+        <div className="player-form-block">
+          <div className="player-form-label">
+            ⚔️ 战斗风格（最多 {MAX_STYLE} 个，已选 {styleTags.length}）
+          </div>
+          <div className="tag-selector">
+            {STYLE_TAGS.map((t) => (
+              <button
+                key={t}
+                type="button"
+                className={
+                  'player-filter-chip' +
+                  (styleTags.includes(t) ? ' active' : '')
+                }
+                onClick={() => toggleTag('style', t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {styleTags.filter((t) => !STYLE_TAGS.includes(t)).length > 0 && (
+            <div className="tag-custom-row" style={{ marginTop: '0.5rem' }}>
+              {styleTags
+                .filter((t) => !STYLE_TAGS.includes(t))
+                .map((t) => (
+                  <span key={t} className="tag-custom-item">
+                    {t}
+                    <button
+                      type="button"
+                      className="tag-custom-remove"
+                      onClick={() => removeTag('style', t)}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+            </div>
+          )}
+
+          <div className="tag-custom-input">
+            <input
+              className="player-input"
+              type="text"
+              placeholder={`自定义补充（最多 ${MAX_CUSTOM_LENGTH} 字）`}
+              value={customStyle}
+              onChange={(e) => setCustomStyle(e.target.value)}
+              maxLength={MAX_CUSTOM_LENGTH}
+            />
+            <button
+              type="button"
+              className="player-btn-sm"
+              onClick={() => addCustom('style')}
+            >
+              添加
+            </button>
           </div>
         </div>
 

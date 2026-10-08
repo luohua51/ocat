@@ -17,6 +17,7 @@ export async function GET(
   }
 
   try {
+    // 1. 基础
     const { data: player } = await supabaseAdmin
       .from('players')
       .select(
@@ -29,12 +30,14 @@ export async function GET(
       return Response.json({ ok: false, error: '陪玩不存在' }, { status: 404 });
     }
 
+    // 2. 资料
     const { data: profile } = await supabaseAdmin
       .from('player_profiles')
       .select('signature, description, rank_text, available_time')
       .eq('player_id', playerId)
       .maybeSingle();
 
+    // 3. 能力
     const { data: capabilities } = await supabaseAdmin
       .from('player_capabilities')
       .select('game_id, tier')
@@ -53,6 +56,7 @@ export async function GET(
       .filter(Boolean);
     const uniqueGames: string[] = [...new Set(gameNames)] as string[];
 
+    // 4. 散陪价
     const { data: prices } = await supabaseAdmin
       .from('player_prices')
       .select('price_per_hour')
@@ -64,7 +68,7 @@ export async function GET(
     const hasFreelance =
       (prices || []).length > 0 && !!player.accept_freelance;
 
-    // 店铺认证（按游戏）
+    // 5. 店铺认证
     const { data: playerUser } = await supabaseAdmin
       .from('users')
       .select('id, shop_id')
@@ -110,7 +114,7 @@ export async function GET(
       });
     }
 
-    // 主档位
+    // 6. 主档位
     const TIER_RANK: Record<string, number> = {
       明星: 0,
       魔王: 1,
@@ -126,6 +130,21 @@ export async function GET(
       mainTier = sorted[0].tier;
     }
 
+    // 7. 标签
+    const { data: tagRows } = await supabaseAdmin
+      .from('player_tags')
+      .select('category, tag_name, sort_order')
+      .eq('player_id', playerId)
+      .order('sort_order', { ascending: true });
+
+    const voiceTags: string[] = [];
+    const styleTags: string[] = [];
+
+    (tagRows || []).forEach((t: any) => {
+      if (t.category === 'voice') voiceTags.push(t.tag_name);
+      if (t.category === 'style') styleTags.push(t.tag_name);
+    });
+
     return Response.json(
       {
         ok: true,
@@ -135,6 +154,8 @@ export async function GET(
         minPrice,
         hasFreelance,
         certList,
+        voiceTags,
+        styleTags,
       },
       {
         headers: {

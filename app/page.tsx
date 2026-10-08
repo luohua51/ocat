@@ -14,7 +14,7 @@ export default function HomePage() {
   const router = useRouter();
   const [game, setGame] = useState('全部');
   const [tier, setTier] = useState<'全部' | Tier>('全部');
-  const [allPlayers, setAllPlayers] = useState<PlayerDisplay[]>([]);
+  const [allPlayers, setAllPlayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [chattingId, setChattingId] = useState<number | null>(null);
 
@@ -25,7 +25,7 @@ export default function HomePage() {
     });
   }, []);
 
-  const filtered = allPlayers.filter((p) => {
+  const filtered = allPlayers.filter((p: any) => {
     if (game !== '全部' && !p.games.includes(game)) return false;
     if (tier !== '全部' && p.tier !== tier) return false;
     return true;
@@ -109,7 +109,7 @@ export default function HomePage() {
           ) : list.length === 0 ? (
             <div className="empty">暂无符合条件的陪玩</div>
           ) : (
-            list.map((p) => (
+            list.map((p: any) => (
               <Link key={p.id} href={`/players/${p.id}`} className="card">
                 <div className="avatar">
                   {p.avatar ? (
@@ -192,6 +192,22 @@ export default function HomePage() {
                     >
                       暂未开放接单
                     </span>
+                  </div>
+                )}
+
+                {/* 标签 */}
+                {(p.voiceTags?.length > 0 || p.styleTags?.length > 0) && (
+                  <div className="card-tags-line">
+                    {p.voiceTags?.slice(0, 1).map((t: string) => (
+                      <span key={t} className="card-tag-mini voice">
+                        🎤 {t}
+                      </span>
+                    ))}
+                    {p.styleTags?.slice(0, 2).map((t: string) => (
+                      <span key={t} className="card-tag-mini style">
+                        ⚔️ {t}
+                      </span>
+                    ))}
                   </div>
                 )}
 

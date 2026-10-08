@@ -4866,3 +4866,87 @@ button {
   background: rgba(220, 38, 38, 0.15);
   color: #f87171;
 }
+
+/* ============================================================
+   标签编辑
+   ============================================================ */
+.tag-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tag-custom-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tag-custom-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.tag-custom-remove {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.tag-custom-input {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.tag-custom-input .player-input {
+  flex: 1;
+}
+
+/* 详情页标签 */
+.tag.voice-tag {
+  background: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
+}
+
+.tag.style-tag {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+}
+
+/* 卡片标签 */
+.card-tags-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.4rem;
+}
+
+.card-tag-mini {
+  font-size: 0.65rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.3rem;
+  font-weight: 700;
+}
+
+.card-tag-mini.voice {
+  background: rgba(236, 72, 153, 0.12);
+  color: #ec4899;
+}
+
+.card-tag-mini.style {
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366f1;
+}
