@@ -12,7 +12,7 @@ function calcDiscount(baseAmount: number, date = new Date()) {
   const rate = isWeekend ? 0.85 : 0.95;
   const finalAmount = Number((baseAmount * rate).toFixed(2));
   const discountAmount = Number((baseAmount - finalAmount).toFixed(2));
-  return { rate, finalAmount, discountAmount, isWeekend };
+  return { rate, finalAmount, discountAmount };
 }
 
 // ============================================================
@@ -130,9 +130,9 @@ export async function POST(req: Request) {
     discountAmount = d.discountAmount;
     finalAmount = d.finalAmount;
 
-    // 平台抽成按原价算，陪玩收入不变
-    platformFee = baseAmount * 0.02;
-    playerIncome = baseAmount - platformFee;
+    // 平台抽成按折后价算，陪玩收入 = 折后价 - 平台抽成
+    platformFee = finalAmount * 0.02;
+    playerIncome = finalAmount - platformFee;
   } else {
     // 抢单池：陪玩接单时才计算价格，这里先占位
     unitPrice = 0;
