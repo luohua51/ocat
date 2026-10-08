@@ -30,6 +30,45 @@ export const ORDER_STATUS_COLOR: Record<string, string> = {
   expired: '#6b7280',
 };
 
+// ============================================================
+// 折扣计算（前端预览用，后端会再算一次权威值）
+// ============================================================
+export type DiscountResult = {
+  originalPrice: number;
+  finalPrice: number;
+  discountRate: number;
+  discountAmount: number;
+  discountLabel: string;
+  isWeekend: boolean;
+};
+
+export function calcOrderPrice(
+  originalPrice: number,
+  isMember: boolean,
+  date: Date = new Date()
+): DiscountResult {
+  if (!isMember || originalPrice <= 0) {
+    return {
+      originalPrice,
+      finalPrice: originalPrice,
+      discountRate: 1,
+      discountAmount: 0,
+      discountLabel: '无折扣',
+      isWeekend: false,
+    };
+  }
+  const day = date.getDay(); // 0=周日, 6=周六
+  const isWeekend = day === 0 || day === 6;
+  const discountRate = isWeekend ? 0.85 : 0.95;
+  const discountLabel = isWeekend ? '周末会员85折' : '会员95折';
+  const finalPrice = Number((originalPrice * discountRate).toFixed(2));
+  const discountAmount = Number((originalPrice - finalPrice).toFixed(2));
+  return { originalPrice, finalPrice, discountRate, discountAmount, discountLabel, isWeekend };
+}
+
+// ============================================================
+// 订单类型
+// ============================================================
 export type Order = {
   id: number;
   order_no: string;
@@ -54,6 +93,11 @@ export type Order = {
   is_designated: boolean;
   remark: string | null;
   created_at: string;
+  // 新增
+  discount_rate: number;
+  discount_amount: number;
+  order_type: 'instant' | 'scheduled';
+  scheduled_at: string | null;
 };
 
 export async function fetchOrders(): Promise<Order[]> {
@@ -71,13 +115,14 @@ export async function fetchOrder(id: number): Promise<Order | null> {
 }
 
 export async function createOrder(payload: {
-  playerId: number;
+  playerId?: number | null;
   gameId: number;
   tier: string;
   bossRank: string;
   durationHours: number;
   identityType?: 'freelance' | 'shop';
   remark?: string;
+  scheduledTime?: string | null; // 新增：ISO 时间字符串
 }): Promise<{ ok: boolean; order?: Order; error?: string }> {
   const res = await fetch('/api/orders', {
     method: 'POST',
@@ -98,9 +143,7 @@ export async function fetchHallOrders(): Promise<Order[]> {
 export async function acceptOrder(
   orderId: number
 ): Promise<{ ok: boolean; order?: Order; error?: string }> {
-  const res = await fetch(`/api/orders/${orderId}/accept`, {
-    method: 'POST',
-  });
+  const res = await fetch(`/api/orders/${orderId}/accept`, { method: 'POST' });
   const data = await res.json();
   return data.ok ? { ok: true, order: data.order } : { ok: false, error: data.error };
 }
@@ -146,9 +189,7 @@ export async function upsertPrice(payload: {
   return data.ok ? { ok: true } : { ok: false, error: data.error };
 }
 
-export async function deletePrice(
-  id: number
-): Promise<{ ok: boolean; error?: string }> {
+export async function deletePrice(id: number): Promise<{ ok: boolean; error?: string }> {
   const res = await fetch('/api/player/prices/' + id, { method: 'DELETE' });
   const data = await res.json();
   return data.ok ? { ok: true } : { ok: false, error: data.error };
@@ -289,9 +330,7 @@ export async function toggleMyStatus(): Promise<{
     body: JSON.stringify({ action: 'toggle' }),
   });
   const data = await res.json();
-  return data.ok
-    ? { ok: true, status: data.status }
-    : { ok: false, error: data.error };
+  return data.ok ? { ok: true, status: data.status } : { ok: false, error: data.error };
 }
 
 export async function sendHeartbeat(): Promise<void> {

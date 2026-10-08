@@ -4,6 +4,18 @@ import { getSessionUser } from '@/lib/auth-server';
 export const dynamic = 'force-dynamic';
 
 // ============================================================
+// 后端权威折扣计算（不能信前端）
+// ============================================================
+function calcDiscount(baseAmount: number, date = new Date()) {
+  const day = date.getDay();
+  const isWeekend = day === 0 || day === 6;
+  const rate = isWeekend ? 0.85 : 0.95;
+  const finalAmount = Number((baseAmount * rate).toFixed(2));
+  const discountAmount = Number((baseAmount - finalAmount).toFixed(2));
+  return { rate, finalAmount, discountAmount, isWeekend };
+}
+
+// ============================================================
 // GET /api/orders  列表
 // ============================================================
 export async function GET() {
@@ -52,6 +64,7 @@ export async function POST(req: Request) {
   const durationHours = Number(body.durationHours);
   const identityType = String(body.identityType || 'freelance');
   const remark = String(body.remark || '');
+  const scheduledTime: string | null = body.scheduledTime || null;
 
   if (!gameId) return Response.json({ ok: false, error: '请选择游戏' }, { status: 400 });
   if (!tier) return Response.json({ ok: false, error: '请选择档位' }, { status: 400 });
@@ -60,6 +73,7 @@ export async function POST(req: Request) {
   }
 
   const isDesignated = !!playerId;
+  const orderType: 'instant' | 'scheduled' = scheduledTime ? 'scheduled' : 'instant';
 
   // 查陪玩（指定单才查）
   let player: any = null;
@@ -83,7 +97,7 @@ export async function POST(req: Request) {
     .maybeSingle();
   if (!game) return Response.json({ ok: false, error: '游戏不存在' }, { status: 404 });
 
-    // 价格计算
+  // 价格计算
   let unitPrice = 0;
   let shopId: number | null = null;
   let shopFee = 0;
@@ -91,9 +105,10 @@ export async function POST(req: Request) {
   let platformFee = 0;
   let finalAmount = 0;
   let playerIncome = 0;
+  let discountRate = 1;
+  let discountAmount = 0;
 
   if (isDesignated) {
-    // 指定单：从该陪玩的散陪价查
     const { data: price } = await supabaseAdmin
       .from('player_prices')
       .select('price_per_hour')
@@ -108,18 +123,28 @@ export async function POST(req: Request) {
     }
     unitPrice = Number(price.price_per_hour);
     baseAmount = unitPrice * durationHours;
+
+    // 折扣（后端权威）
+    const d = calcDiscount(baseAmount);
+    discountRate = d.rate;
+    discountAmount = d.discountAmount;
+    finalAmount = d.finalAmount;
+
+    // 平台抽成按原价算，陪玩收入不变
     platformFee = baseAmount * 0.02;
-    finalAmount = baseAmount;
     playerIncome = baseAmount - platformFee;
   } else {
+    // 抢单池：陪玩接单时才计算价格，这里先占位
     unitPrice = 0;
     baseAmount = 0;
     platformFee = 0;
     finalAmount = 0;
     playerIncome = 0;
+    discountRate = 1;
+    discountAmount = 0;
   }
 
-  // 指定单：扣会员余额
+  // 指定单：扣会员余额（按折后价扣）
   if (isDesignated && finalAmount > 0) {
     const { data: wallet } = await supabaseAdmin
       .from('wallets')
@@ -130,7 +155,10 @@ export async function POST(req: Request) {
     const currentBalance = wallet ? Number(wallet.balance) : 0;
     if (currentBalance < finalAmount) {
       return Response.json(
-        { ok: false, error: `余额不足（当前 ¥${currentBalance.toFixed(2)}，需要 ¥${finalAmount.toFixed(2)}）` },
+        {
+          ok: false,
+          error: `余额不足（当前 ¥${currentBalance.toFixed(2)}，需 ¥${finalAmount.toFixed(2)}）`,
+        },
         { status: 400 }
       );
     }
@@ -146,7 +174,7 @@ export async function POST(req: Request) {
       type: 'consume',
       amount: finalAmount,
       balance_after: newBalance,
-      description: `下单 - ${game.name} · ${tier}`,
+      description: `下单 - ${game.name} · ${tier}${discountAmount > 0 ? `（折扣 -¥${discountAmount}）` : ''}`,
     });
   }
 
@@ -178,6 +206,11 @@ export async function POST(req: Request) {
       is_designated: isDesignated,
       paid_at: isDesignated ? new Date().toISOString() : null,
       remark,
+      // 新增
+      discount_rate: discountRate,
+      discount_amount: discountAmount,
+      order_type: orderType,
+      scheduled_at: scheduledTime,
     })
     .select('*')
     .single();

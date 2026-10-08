@@ -1,6 +1,18 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSessionUser } from '@/lib/auth-server';
 
+// ============================================================
+// 后端权威折扣计算
+// ============================================================
+function calcDiscount(baseAmount: number, date = new Date()) {
+  const day = date.getDay();
+  const isWeekend = day === 0 || day === 6;
+  const rate = isWeekend ? 0.85 : 0.95;
+  const finalAmount = Number((baseAmount * rate).toFixed(2));
+  const discountAmount = Number((baseAmount - finalAmount).toFixed(2));
+  return { rate, finalAmount, discountAmount };
+}
+
 export async function POST(
   _req: Request,
   { params }: { params: { id: string } }
@@ -68,15 +80,11 @@ export async function POST(
 
     if (!userInfo?.shop_id) {
       return Response.json(
-        {
-          ok: false,
-          error: '你没设置该游戏档位的价格，且不属于任何店铺，无法接单',
-        },
+        { ok: false, error: '你没设置该游戏档位的价格，且不属于任何店铺，无法接单' },
         { status: 400 }
       );
     }
 
-    // 2. 查店铺价
     let spq = supabaseAdmin
       .from('shop_prices')
       .select('price_per_hour')
@@ -91,7 +99,6 @@ export async function POST(
 
     let { data: shopPrice } = await spq.maybeSingle();
 
-    // 如果精确匹配不到，尝试"任意"档位
     if (!shopPrice) {
       const { data: fallback } = await supabaseAdmin
         .from('shop_prices')
@@ -102,7 +109,6 @@ export async function POST(
         .eq('boss_rank', '任意')
         .eq('is_active', true)
         .maybeSingle();
-
       shopPrice = fallback;
     }
 
@@ -132,6 +138,11 @@ export async function POST(
   }
 
   const baseAmount = unitPrice * Number(order.duration_hours);
+
+  // 折扣（后端权威，按接单时间算）
+  const d = calcDiscount(baseAmount);
+  const finalAmount = d.finalAmount;
+
   const platformFee = baseAmount * platformFeeRate;
   const shopFee = baseAmount * shopFeeRate;
   const playerIncome = baseAmount - platformFee - shopFee;
@@ -143,17 +154,17 @@ export async function POST(
     .maybeSingle();
 
   const currentBalance = wallet ? Number(wallet.balance) : 0;
-  if (currentBalance < baseAmount) {
+  if (currentBalance < finalAmount) {
     return Response.json(
       {
         ok: false,
-        error: `老板余额不足（当前 ¥${currentBalance.toFixed(2)}，需 ¥${baseAmount.toFixed(2)}）`,
+        error: `老板余额不足（当前 ¥${currentBalance.toFixed(2)}，需 ¥${finalAmount.toFixed(2)}）`,
       },
       { status: 400 }
     );
   }
 
-  const newBalance = currentBalance - baseAmount;
+  const newBalance = currentBalance - finalAmount;
 
   const { data: updated, error } = await supabaseAdmin
     .from('orders')
@@ -164,13 +175,15 @@ export async function POST(
       identity_type: identityType,
       unit_price: unitPrice,
       base_amount: baseAmount,
-      final_amount: baseAmount,
+      final_amount: finalAmount,
       platform_fee: platformFee,
       shop_fee: shopFee,
       player_income: playerIncome,
       status: 'locked',
       locked_at: new Date().toISOString(),
       paid_at: new Date().toISOString(),
+      discount_rate: d.rate,
+      discount_amount: d.discountAmount,
     })
     .eq('id', orderId)
     .eq('status', 'pooling')
@@ -193,10 +206,10 @@ export async function POST(
   await supabaseAdmin.from('wallet_transactions').insert({
     user_id: order.member_id,
     type: 'consume',
-    amount: baseAmount,
+    amount: finalAmount,
     balance_after: newBalance,
     order_id: orderId,
-    description: `订单 ${order.order_no} 已接单扣款`,
+    description: `订单 ${order.order_no} 已接单扣款${d.discountAmount > 0 ? `（折扣 -¥${d.discountAmount}）` : ''}`,
   });
 
   await supabaseAdmin

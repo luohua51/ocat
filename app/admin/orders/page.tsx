@@ -54,6 +54,7 @@ export default function AdminOrdersPage() {
           <thead>
             <tr>
               <th>订单号</th>
+              <th>类型</th>
               <th>会员</th>
               <th>陪玩</th>
               <th>游戏</th>
@@ -67,46 +68,63 @@ export default function AdminOrdersPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.4)' }}>
+                <td colSpan={10} style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.4)' }}>
                   加载中…
                 </td>
               </tr>
             ) : list.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.4)' }}>
+                <td colSpan={10} style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.4)' }}>
                   暂无订单
                 </td>
               </tr>
             ) : (
-              list.map((o) => (
-                <tr key={o.id}>
-                  <td style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)' }}>{o.order_no}</td>
-                  <td>{o.member_name}</td>
-                  <td>{o.player_name || '待分配'}</td>
-                  <td>{o.game_name}</td>
-                  <td>{o.tier}</td>
-                  <td>{o.duration_hours}h</td>
-                  <td style={{ color: o.final_amount > 0 ? '#34d399' : '#9ca3af', fontWeight: 700 }}>
-                    {o.final_amount > 0 ? `¥${o.final_amount.toFixed(2)}` : '待定'}
-                  </td>
-                  <td>
-                    <span
-                      className="admin-badge"
-                      style={{
-                        background: (ORDER_STATUS_COLOR[o.status] || '#6b7280') + '22',
-                        color: ORDER_STATUS_COLOR[o.status] || '#6b7280',
-                      }}
-                    >
-                      {ORDER_STATUS_TEXT[o.status] || o.status}
-                    </span>
-                  </td>
-                  <td>
-                    <Link href={`/admin/orders/${o.id}`} className="admin-btn-sm">
-                      详情
-                    </Link>
-                  </td>
-                </tr>
-              ))
+              list.map((o) => {
+                const hasDiscount = (o.discount_amount || 0) > 0;
+                return (
+                  <tr key={o.id}>
+                    <td style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)' }}>{o.order_no}</td>
+                    <td>
+                      {o.order_type === 'scheduled' ? (
+                        <span style={{ color: '#a78bfa' }}>预约</span>
+                      ) : (
+                        <span style={{ color: '#34d399' }}>实时</span>
+                      )}
+                    </td>
+                    <td>{o.member_name}</td>
+                    <td>{o.player_name || '待分配'}</td>
+                    <td>{o.game_name}</td>
+                    <td>{o.tier}</td>
+                    <td>{o.duration_hours}h</td>
+                    <td>
+                      <div style={{ color: o.final_amount > 0 ? '#34d399' : '#9ca3af', fontWeight: 700 }}>
+                        {o.final_amount > 0 ? `¥${o.final_amount.toFixed(2)}` : '待定'}
+                      </div>
+                      {hasDiscount && (
+                        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)' }}>
+                          原 ¥{o.base_amount.toFixed(2)} · 折 -¥{o.discount_amount.toFixed(2)}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <span
+                        className="admin-badge"
+                        style={{
+                          background: (ORDER_STATUS_COLOR[o.status] || '#6b7280') + '22',
+                          color: ORDER_STATUS_COLOR[o.status] || '#6b7280',
+                        }}
+                      >
+                        {ORDER_STATUS_TEXT[o.status] || o.status}
+                      </span>
+                    </td>
+                    <td>
+                      <Link href={`/admin/orders/${o.id}`} className="admin-btn-sm">
+                        详情
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

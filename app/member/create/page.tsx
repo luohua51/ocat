@@ -6,16 +6,7 @@ import { createOrder } from '@/lib/order';
 import { fetchCurrentUser, type User } from '@/lib/auth';
 
 const ALL_TIERS = ['娱乐', '技术', '金牌', '魔王', '明星'];
-
-const TIER_RANK: Record<string, number> = {
-  娱乐: 4,
-  技术: 3,
-  金牌: 2,
-  魔王: 1,
-  明星: 0,
-};
-
-// 散陪可用档位
+const TIER_RANK: Record<string, number> = { 娱乐: 4, 技术: 3, 金牌: 2, 魔王: 1, 明星: 0 };
 const FREELANCE_TIERS = ['娱乐', '技术'];
 
 type Player = {
@@ -28,11 +19,7 @@ type Player = {
   shopGameTiers: { gameId: number; tier: string; shopId: number }[];
 };
 
-type Game = {
-  id: number;
-  name: string;
-  ranks: string[];
-};
+type Game = { id: number; name: string; ranks: string[] };
 
 function CreateContent() {
   const router = useRouter();
@@ -41,19 +28,21 @@ function CreateContent() {
 
   const [user, setUser] = useState<User | null>(null);
   const [checking, setChecking] = useState(true);
-
   const [players, setPlayers] = useState<Player[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [playerId, setPlayerId] = useState<number>(
-    playerIdFromUrl ? Number(playerIdFromUrl) : 0
-  );
+  const [playerId, setPlayerId] = useState<number>(playerIdFromUrl ? Number(playerIdFromUrl) : 0);
   const [gameId, setGameId] = useState<number>(0);
   const [tier, setTier] = useState<string>('娱乐');
   const [bossRank, setBossRank] = useState('');
   const [hours, setHours] = useState(1);
   const [remark, setRemark] = useState('');
+
+  // 新增：下单类型 + 预约时间
+  const [timing, setTiming] = useState<'instant' | 'scheduled'>('instant');
+  const [scheduledAt, setScheduledAt] = useState('');
+
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -74,9 +63,7 @@ function CreateContent() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/api/public/order-options', {
-          cache: 'no-store',
-        });
+        const res = await fetch('/api/public/order-options', { cache: 'no-store' });
         const data = await res.json();
         if (!data.ok) {
           setError(data.error || '加载失败');
@@ -98,7 +85,6 @@ function CreateContent() {
   const selectedGame = games.find((g) => g.id === gameId);
   const isDesignated = playerId > 0;
 
-  // 可用游戏
   const availableGames = useMemo(() => {
     if (!isDesignated) return games;
     if (!player) return [];
@@ -106,29 +92,18 @@ function CreateContent() {
     return games.filter((g) => gameIds.includes(g.id));
   }, [isDesignated, player, games]);
 
-  // 可用档位
   const availableTiers = useMemo(() => {
     if (!isDesignated) return ALL_TIERS;
     if (!player || !gameId) return [];
-
-    // 1. 该游戏有店铺授权 → 按授权向下兼容
-    const shopTierForGame = player.shopGameTiers.find(
-      (sgt) => sgt.gameId === gameId
-    );
-
+    const shopTierForGame = player.shopGameTiers.find((sgt) => sgt.gameId === gameId);
     if (shopTierForGame) {
       const playerRank = TIER_RANK[shopTierForGame.tier] ?? 4;
       return ALL_TIERS.filter((t) => (TIER_RANK[t] ?? 4) >= playerRank);
     }
-
-    // 2. 没有店铺授权，但接散陪 → 只亮娱乐、技术
     if (player.acceptFreelance) {
-      const hasCapability = player.capabilities.some(
-        (c) => c.gameId === gameId
-      );
+      const hasCapability = player.capabilities.some((c) => c.gameId === gameId);
       if (hasCapability) return FREELANCE_TIERS;
     }
-
     return [];
   }, [isDesignated, player, gameId]);
 
@@ -137,7 +112,6 @@ function CreateContent() {
     return selectedGame.ranks || [];
   }, [selectedGame]);
 
-  // 陪玩换了 → 自动选第一个可用游戏
   useEffect(() => {
     if (!isDesignated) {
       setGameId(0);
@@ -145,16 +119,12 @@ function CreateContent() {
       setBossRank('');
       return;
     }
-    if (availableGames.length > 0) {
-      setGameId(availableGames[0].id);
-    } else {
-      setGameId(0);
-    }
+    if (availableGames.length > 0) setGameId(availableGames[0].id);
+    else setGameId(0);
     setBossRank('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerId, isDesignated]);
 
-  // 游戏变了 → 校正档位
   useEffect(() => {
     if (availableTiers.length > 0 && !availableTiers.includes(tier)) {
       setTier(availableTiers[0]);
@@ -171,6 +141,7 @@ function CreateContent() {
     if (!availableTiers.includes(tier)) return setError('档位不可用');
     if (!bossRank) return setError('请选择你的段位');
     if (hours <= 0) return setError('时长必须大于 0');
+    if (timing === 'scheduled' && !scheduledAt) return setError('请选择预约时间');
 
     setSubmitting(true);
     const result = await createOrder({
@@ -181,6 +152,7 @@ function CreateContent() {
       durationHours: hours,
       identityType: 'freelance',
       remark,
+      scheduledTime: timing === 'scheduled' ? new Date(scheduledAt).toISOString() : null,
     });
     setSubmitting(false);
 
@@ -205,7 +177,45 @@ function CreateContent() {
         <p className="member-subtitle">选择指定陪玩，或发单让陪玩来抢</p>
       </div>
 
+      <div className="member-discount-banner">
+        <span>🎉 会员专享</span>
+        <span>平时 <b>95折</b> · 周末 <b>85折</b></span>
+      </div>
+
       <form onSubmit={handleSubmit} className="member-create-form">
+        {/* 下单类型 */}
+        <div className="member-form-block">
+          <div className="member-form-label">下单类型</div>
+          <div className="member-radio-row">
+            <button
+              type="button"
+              className={'member-radio' + (timing === 'instant' ? ' active' : '')}
+              onClick={() => {
+                setTiming('instant');
+                setScheduledAt('');
+              }}
+            >
+              🚀 立即开始
+            </button>
+            <button
+              type="button"
+              className={'member-radio' + (timing === 'scheduled' ? ' active' : '')}
+              onClick={() => setTiming('scheduled')}
+            >
+              📅 预约
+            </button>
+          </div>
+          {timing === 'scheduled' && (
+            <input
+              type="datetime-local"
+              className="member-input"
+              style={{ marginTop: '0.6rem' }}
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
+            />
+          )}
+        </div>
+
         <div className="member-form-block">
           <div className="member-form-label">选择陪玩</div>
           <select
@@ -239,14 +249,8 @@ function CreateContent() {
                     key={g.id}
                     type="button"
                     disabled={!enabled}
-                    className={
-                      'member-radio' + (gameId === g.id ? ' active' : '')
-                    }
-                    style={
-                      !enabled
-                        ? { opacity: 0.3, cursor: 'not-allowed' }
-                        : undefined
-                    }
+                    className={'member-radio' + (gameId === g.id ? ' active' : '')}
+                    style={!enabled ? { opacity: 0.3, cursor: 'not-allowed' } : undefined}
                     onClick={() => enabled && setGameId(g.id)}
                   >
                     {g.name}
@@ -275,11 +279,7 @@ function CreateContent() {
                     type="button"
                     disabled={!enabled}
                     className={'member-radio' + (tier === t ? ' active' : '')}
-                    style={
-                      !enabled
-                        ? { opacity: 0.3, cursor: 'not-allowed' }
-                        : undefined
-                    }
+                    style={!enabled ? { opacity: 0.3, cursor: 'not-allowed' } : undefined}
                     onClick={() => enabled && setTier(t)}
                   >
                     {t}
@@ -296,10 +296,7 @@ function CreateContent() {
               你的段位{selectedGame ? `（${selectedGame.name}）` : ''}
             </div>
             {availableRanks.length === 0 ? (
-              <div
-                className="member-empty"
-                style={{ padding: '0.8rem', fontSize: '0.85rem' }}
-              >
+              <div className="member-empty" style={{ padding: '0.8rem', fontSize: '0.85rem' }}>
                 该游戏没有段位
               </div>
             ) : (
@@ -308,9 +305,7 @@ function CreateContent() {
                   <button
                     key={r}
                     type="button"
-                    className={
-                      'member-radio' + (bossRank === r ? ' active' : '')
-                    }
+                    className={'member-radio' + (bossRank === r ? ' active' : '')}
                     onClick={() => setBossRank(r)}
                   >
                     {r}
@@ -355,11 +350,7 @@ function CreateContent() {
           className="member-submit-btn"
           disabled={submitting || noCapability || noTier}
         >
-          {submitting
-            ? '提交中…'
-            : isDesignated
-            ? '提交订单'
-            : '发布到抢单池'}
+          {submitting ? '提交中…' : isDesignated ? '提交订单' : '发布到抢单池'}
         </button>
       </form>
     </>
@@ -368,11 +359,7 @@ function CreateContent() {
 
 export default function MemberCreatePage() {
   return (
-    <Suspense
-      fallback={
-        <div style={{ color: '#fff', padding: '2rem' }}>加载中…</div>
-      }
-    >
+    <Suspense fallback={<div style={{ color: '#fff', padding: '2rem' }}>加载中…</div>}>
       <CreateContent />
     </Suspense>
   );
