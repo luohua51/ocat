@@ -15,7 +15,6 @@ export type PlayerProfile = {
   player_id: number;
   signature: string | null;
   description: string | null;
-  rank_text: string | null;
   available_time: string | null;
   screenshots: string[];
 };
@@ -39,7 +38,6 @@ export async function updateMyPlayerProfile(payload: {
   name?: string;
   signature?: string;
   description?: string;
-  rankText?: string;
   availableTime?: string;
   games?: string[];
 }): Promise<{ ok: boolean; error?: string }> {

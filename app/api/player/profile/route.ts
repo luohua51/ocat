@@ -2,10 +2,9 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSessionUser } from '@/lib/auth-server';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-// ============================================================
-// GET 当前陪玩资料
-// ============================================================
+// GET
 export async function GET() {
   if (!supabaseAdmin) {
     return Response.json({ ok: false, error: '服务器未配置' }, { status: 500 });
@@ -43,9 +42,7 @@ export async function GET() {
   });
 }
 
-// ============================================================
-// PUT 更新资料
-// ============================================================
+// PUT
 export async function PUT(req: Request) {
   if (!supabaseAdmin) {
     return Response.json({ ok: false, error: '服务器未配置' }, { status: 500 });
@@ -59,68 +56,130 @@ export async function PUT(req: Request) {
 
   const body = await req.json();
   const name = body.name ? String(body.name).trim() : null;
-  const signature = body.signature !== undefined ? String(body.signature || '') : undefined;
-  const description = body.description !== undefined ? String(body.description || '') : undefined;
-  const rankText = body.rankText !== undefined ? String(body.rankText || '') : undefined;
-  const availableTime = body.availableTime !== undefined ? String(body.availableTime || '') : undefined;
+  const signature =
+    body.signature !== undefined ? String(body.signature || '') : undefined;
+  const description =
+    body.description !== undefined ? String(body.description || '') : undefined;
+  const availableTime =
+    body.availableTime !== undefined
+      ? String(body.availableTime || '')
+      : undefined;
   const games = Array.isArray(body.games) ? body.games : undefined;
 
-  // 更新 players 表
+  console.log('[profile PUT] body:', body);
+
+  // 1. players.name
   if (name) {
-    await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from('players')
-      .update({ name, updated_at: new Date().toISOString() })
+      .update({ name })
       .eq('id', me.playerId);
+    if (error) {
+      console.error('[profile PUT] name update error:', error);
+      return Response.json(
+        { ok: false, error: '更新昵称失败：' + error.message },
+        { status: 500 }
+      );
+    }
   }
 
-  // upsert player_profiles
-  const { data: existing } = await supabaseAdmin
+  // 2. player_profiles
+  const { data: existingProfile, error: queryErr } = await supabaseAdmin
     .from('player_profiles')
     .select('id')
     .eq('player_id', me.playerId)
     .maybeSingle();
 
-  const patch: any = { player_id: me.playerId, updated_at: new Date().toISOString() };
-  if (signature !== undefined) patch.signature = signature;
-  if (description !== undefined) patch.description = description;
-  if (rankText !== undefined) patch.rank_text = rankText;
-  if (availableTime !== undefined) patch.available_time = availableTime;
-
-  if (existing) {
-    await supabaseAdmin.from('player_profiles').update(patch).eq('id', existing.id);
-  } else {
-    await supabaseAdmin.from('player_profiles').insert(patch);
+  if (queryErr) {
+    console.error('[profile PUT] profile query error:', queryErr);
   }
 
-  // 更新能力（游戏）
+  const patch: any = { player_id: me.playerId };
+  if (signature !== undefined) patch.signature = signature;
+  if (description !== undefined) patch.description = description;
+  if (availableTime !== undefined) patch.available_time = availableTime;
+
+  console.log('[profile PUT] patch:', patch, 'hasExisting:', !!existingProfile);
+
+  if (existingProfile) {
+    const { error } = await supabaseAdmin
+      .from('player_profiles')
+      .update(patch)
+      .eq('id', existingProfile.id);
+    if (error) {
+      console.error('[profile PUT] profile update error:', error);
+      return Response.json(
+        { ok: false, error: '更新资料失败：' + error.message },
+        { status: 500 }
+      );
+    }
+  } else {
+    const { error } = await supabaseAdmin
+      .from('player_profiles')
+      .insert(patch);
+    if (error) {
+      console.error('[profile PUT] profile insert error:', error);
+      return Response.json(
+        { ok: false, error: '创建资料失败：' + error.message },
+        { status: 500 }
+      );
+    }
+  }
+
+  // 3. 能力
   if (games !== undefined) {
-    // 先查出游戏 id
-    const { data: gameRows } = await supabaseAdmin
+    const { data: gameRows, error: gamesErr } = await supabaseAdmin
       .from('games')
       .select('id, name')
       .eq('status', 'active');
 
-    const gameMap = new Map((gameRows || []).map((g) => [g.name, g.id]));
+    if (gamesErr) {
+      console.error('[profile PUT] games query error:', gamesErr);
+      return Response.json(
+        { ok: false, error: '查询游戏失败：' + gamesErr.message },
+        { status: 500 }
+      );
+    }
 
-    // 删除现有能力
-    await supabaseAdmin
+    const gameMap = new Map((gameRows || []).map((g) => [g.name, g.id]));
+    const matchedGameIds = games
+      .map((g: string) => gameMap.get(g))
+      .filter((x): x is number => typeof x === 'number');
+
+    console.log('[profile PUT] games:', games, '→ ids:', matchedGameIds);
+
+    const { error: delErr } = await supabaseAdmin
       .from('player_capabilities')
       .delete()
       .eq('player_id', me.playerId);
 
-    // 重新插入
-    const inserts = games
-      .map((g: string) => gameMap.get(g))
-      .filter(Boolean)
-      .map((gameId: number) => ({
+    if (delErr) {
+      console.error('[profile PUT] caps delete error:', delErr);
+      return Response.json(
+        { ok: false, error: '清理旧能力失败：' + delErr.message },
+        { status: 500 }
+      );
+    }
+
+    if (matchedGameIds.length > 0) {
+      const inserts = matchedGameIds.map((gameId) => ({
         player_id: me.playerId!,
         game_id: gameId,
-        tier: '娱乐', // 默认娱乐，认证通过店铺授予
+        tier: '娱乐',
         is_active: true,
       }));
 
-    if (inserts.length > 0) {
-      await supabaseAdmin.from('player_capabilities').insert(inserts);
+      const { error: insErr } = await supabaseAdmin
+        .from('player_capabilities')
+        .insert(inserts);
+
+      if (insErr) {
+        console.error('[profile PUT] caps insert error:', insErr);
+        return Response.json(
+          { ok: false, error: '保存能力失败：' + insErr.message },
+          { status: 500 }
+        );
+      }
     }
   }
 

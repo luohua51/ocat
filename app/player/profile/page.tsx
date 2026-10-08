@@ -29,7 +29,6 @@ export default function PlayerProfilePage() {
   const [name, setName] = useState('');
   const [signature, setSignature] = useState('');
   const [description, setDescription] = useState('');
-  const [rankText, setRankText] = useState('');
   const [availableTime, setAvailableTime] = useState('');
   const [selectedGames, setSelectedGames] = useState<string[]>([]);
 
@@ -41,41 +40,44 @@ export default function PlayerProfilePage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function load() {
-    const [data, g, tagRes] = await Promise.all([
-      fetchMyPlayerProfile(),
-      fetchGames(),
-      fetch('/api/player/tags', { cache: 'no-store' }).then((r) => r.json()),
-    ]);
-    setGames(g);
+    try {
+      const [data, g, tagRes] = await Promise.all([
+        fetchMyPlayerProfile(),
+        fetchGames(),
+        fetch('/api/player/tags', { cache: 'no-store' }).then((r) => r.json()),
+      ]);
+      setGames(g);
 
-    if (data.player) {
-      setPlayer(data.player);
-      setName(data.player.name || '');
+      if (data.player) {
+        setPlayer(data.player);
+        setName(data.player.name || '');
+      }
+
+      if (data.profile) {
+        setProfile(data.profile);
+        setSignature(data.profile.signature || '');
+        setDescription(data.profile.description || '');
+        setAvailableTime(data.profile.available_time || '');
+      }
+
+      if (data.capabilities.length > 0 && g.length > 0) {
+        const names = data.capabilities
+          .map((c) => g.find((x) => x.id === c.game_id)?.name)
+          .filter((x): x is string => !!x);
+        setSelectedGames(names);
+      } else {
+        setSelectedGames([]);
+      }
+
+      if (tagRes && tagRes.ok) {
+        setVoiceTags(tagRes.voice || []);
+        setStyleTags(tagRes.style || []);
+      }
+    } catch (err) {
+      console.error('加载失败:', err);
+    } finally {
+      setLoading(false);
     }
-
-    if (data.profile) {
-      setProfile(data.profile);
-      setSignature(data.profile.signature || '');
-      setDescription(data.profile.description || '');
-      setRankText(data.profile.rank_text || '');
-      setAvailableTime(data.profile.available_time || '');
-    }
-
-    if (data.capabilities.length > 0 && g.length > 0) {
-      const names = data.capabilities
-        .map((c) => g.find((x) => x.id === c.game_id)?.name)
-        .filter((x): x is string => !!x);
-      setSelectedGames(names);
-    } else {
-      setSelectedGames([]);
-    }
-
-    if (tagRes && tagRes.ok) {
-      setVoiceTags(tagRes.voice || []);
-      setStyleTags(tagRes.style || []);
-    }
-
-    setLoading(false);
   }
 
   useEffect(() => {
@@ -172,11 +174,19 @@ export default function PlayerProfilePage() {
 
     setSaving(true);
 
+    console.log('[handleSave] 即将提交:', {
+      name: name.trim(),
+      signature,
+      description,
+      availableTime,
+      games: selectedGames,
+    });
+
+    // 1. 保存资料
     const r = await updateMyPlayerProfile({
       name: name.trim(),
       signature,
       description,
-      rankText,
       availableTime,
       games: selectedGames,
     });
@@ -186,6 +196,7 @@ export default function PlayerProfilePage() {
       return alert(r.error || '保存资料失败');
     }
 
+    // 2. 保存标签
     const tagRes = await fetch('/api/player/tags', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -262,17 +273,6 @@ export default function PlayerProfilePage() {
             placeholder="一句话介绍自己"
             value={signature}
             onChange={(e) => setSignature(e.target.value)}
-          />
-        </div>
-
-        <div className="player-form-block">
-          <div className="player-form-label">段位说明（自由填写）</div>
-          <input
-            className="player-input"
-            type="text"
-            placeholder="如：永劫修罗、瓦钻石"
-            value={rankText}
-            onChange={(e) => setRankText(e.target.value)}
           />
         </div>
 
