@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { TIER_COLORS } from '@/lib/mock';
 import { proxyImage } from '@/lib/image';
 import { getOrCreateConversation } from '@/lib/chat';
+import UserMenu from '@/components/UserMenu';
 
 export default function PlayerDetailPage() {
   const params = useParams();
@@ -80,18 +81,15 @@ export default function PlayerDetailPage() {
     setChatting(true);
 
     try {
-      // 先检查是否登录
       const sRes = await fetch('/api/auth/session', { cache: 'no-store' });
       const s = await sRes.json();
 
       if (!s.ok || !s.user || s.user.role !== 'member') {
-        // 未登录 → 跳登录，登录后再回来聊天
         const back = `/players/${playerId}`;
         router.push(`/login?redirect=${encodeURIComponent(back)}`);
         return;
       }
 
-      // 已登录 → 创建/获取会话
       const r = await getOrCreateConversation({ playerId });
       if (!r.ok || !r.conversation) {
         alert(r.error || '无法打开会话');
@@ -167,7 +165,10 @@ export default function PlayerDetailPage() {
 
         <div className="detail-identities">
           {certList.map((c: any) => (
-            <span key={c.shopName + c.gameName + c.tier} className="identity-tag shop">
+            <span
+              key={c.shopName + c.gameName + c.tier}
+              className="identity-tag shop"
+            >
               {c.shopName}·{c.gameName}·{c.tier}
             </span>
           ))}
@@ -256,7 +257,6 @@ export default function PlayerDetailPage() {
           </div>
         )}
 
-        {/* 底部两个按钮 */}
         <div className="detail-actions">
           <button
             onClick={handleChat}
@@ -285,10 +285,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <>
       <nav className="navbar">
         <div className="brand">🐱 陪玩平台</div>
-        <div className="nav-links">
-          <Link href="/">全部陪玩</Link>
-          <Link href="/login">登录</Link>
-        </div>
+        <UserMenu />
       </nav>
       <main className="main">{children}</main>
     </>

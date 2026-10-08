@@ -8,6 +8,7 @@ import { GAMES, TIERS, TIER_COLORS, type Tier } from '@/lib/mock';
 import { sortPlayers } from '@/lib/utils';
 import { proxyImage } from '@/lib/image';
 import { getOrCreateConversation } from '@/lib/chat';
+import UserMenu from '@/components/UserMenu';
 
 export default function HomePage() {
   const router = useRouter();
@@ -63,10 +64,7 @@ export default function HomePage() {
     <>
       <nav className="navbar">
         <div className="brand">🐱 陪玩平台</div>
-        <div className="nav-links">
-          <Link href="/login">登录</Link>
-          <Link href="/login?tab=register">注册</Link>
-        </div>
+        <UserMenu />
       </nav>
 
       <main className="main">

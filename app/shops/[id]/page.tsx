@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { TIER_COLORS } from '@/lib/mock';
 import { proxyImage } from '@/lib/image';
+import UserMenu from '@/components/UserMenu';
 
 type PriceItem = {
   tier: string;
@@ -277,10 +278,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <>
       <nav className="navbar">
         <div className="brand">🐱 陪玩平台</div>
-        <div className="nav-links">
-          <Link href="/">全部陪玩</Link>
-          <Link href="/login">登录</Link>
-        </div>
+        <UserMenu />
       </nav>
       <main className="main">{children}</main>
     </>
