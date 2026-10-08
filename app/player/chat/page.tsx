@@ -27,7 +27,8 @@ export default function PlayerChatPage() {
     const diff = now.getTime() - d.getTime();
     if (diff < 60 * 1000) return '刚刚';
     if (diff < 60 * 60 * 1000) return Math.floor(diff / 60000) + ' 分钟前';
-    if (diff < 24 * 60 * 60 * 1000) return Math.floor(diff / 3600000) + ' 小时前';
+    if (diff < 24 * 60 * 60 * 1000)
+      return Math.floor(diff / 3600000) + ' 小时前';
     return d.toLocaleDateString('zh-CN');
   }
 
@@ -56,7 +57,38 @@ export default function PlayerChatPage() {
                 {c.member_name.charAt(0)}
               </div>
               <div className="player-chat-body">
-                <div className="player-chat-name">{c.member_name}</div>
+                <div className="player-chat-name">
+                  {c.member_name}
+                  {c.order_id ? (
+                    <span
+                      style={{
+                        marginLeft: '0.5rem',
+                        fontSize: '0.68rem',
+                        color: '#FF7A00',
+                        background: 'rgba(255,122,0,0.15)',
+                        padding: '0.1rem 0.4rem',
+                        borderRadius: '0.3rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      订单
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        marginLeft: '0.5rem',
+                        fontSize: '0.68rem',
+                        color: '#818cf8',
+                        background: 'rgba(99,102,241,0.15)',
+                        padding: '0.1rem 0.4rem',
+                        borderRadius: '0.3rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      咨询
+                    </span>
+                  )}
+                </div>
                 <div className="player-chat-msg">
                   {c.last_message || '（还没消息）'}
                 </div>

@@ -151,13 +151,17 @@ export default function PlayerChatRoomPage() {
               {conversation.member_name}
             </div>
             <div className="chat-room-peer-sub">
-              订单 #{conversation.order_id}
+              {conversation.order_id
+                ? `订单 #${conversation.order_id}`
+                : '咨询会话'}
             </div>
           </div>
         </div>
       </div>
 
-      <ChatOrderCard orderId={conversation.order_id} role="player" />
+      {conversation.order_id && (
+        <ChatOrderCard orderId={conversation.order_id} role="player" />
+      )}
 
       <div className="chat-room-messages">
         {messages.length === 0 ? (

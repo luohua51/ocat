@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { TIER_COLORS } from '@/lib/mock';
 import { proxyImage } from '@/lib/image';
+import { getOrCreateConversation } from '@/lib/chat';
 
 export default function PlayerDetailPage() {
   const params = useParams();
@@ -15,6 +16,7 @@ export default function PlayerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [booking, setBooking] = useState(false);
+  const [chatting, setChatting] = useState(false);
 
   useEffect(() => {
     if (!playerId) return;
@@ -62,16 +64,42 @@ export default function PlayerDetailPage() {
       const s = await res.json();
 
       if (s.ok && s.user && s.user.role === 'member') {
-        // 已登录会员 → 直接进下单页
         router.push(target);
       } else {
-        // 未登录 → 跳登录页带 redirect
         router.push(`/login?redirect=${encodeURIComponent(target)}`);
       }
     } catch {
       router.push(`/login?redirect=${encodeURIComponent(target)}`);
     } finally {
       setBooking(false);
+    }
+  }
+
+  async function handleChat() {
+    if (chatting) return;
+    setChatting(true);
+
+    try {
+      // 先检查是否登录
+      const sRes = await fetch('/api/auth/session', { cache: 'no-store' });
+      const s = await sRes.json();
+
+      if (!s.ok || !s.user || s.user.role !== 'member') {
+        // 未登录 → 跳登录，登录后再回来聊天
+        const back = `/players/${playerId}`;
+        router.push(`/login?redirect=${encodeURIComponent(back)}`);
+        return;
+      }
+
+      // 已登录 → 创建/获取会话
+      const r = await getOrCreateConversation({ playerId });
+      if (!r.ok || !r.conversation) {
+        alert(r.error || '无法打开会话');
+        return;
+      }
+      router.push('/member/chat/' + r.conversation.id);
+    } finally {
+      setChatting(false);
     }
   }
 
@@ -139,18 +167,13 @@ export default function PlayerDetailPage() {
 
         <div className="detail-identities">
           {certList.map((c: any) => (
-            <span
-              key={c.shopName + c.tier}
-              className="identity-tag shop"
-            >
-              {c.shopName}.{c.tier}
+            <span key={c.shopName + c.gameName + c.tier} className="identity-tag shop">
+              {c.shopName}·{c.gameName}·{c.tier}
             </span>
           ))}
 
           {hasFreelance && (
-            <span className="identity-tag freelance">
-              散陪.{player.tier}
-            </span>
+            <span className="identity-tag freelance">散陪.{player.tier}</span>
           )}
 
           {certList.length === 0 && !hasFreelance && (
@@ -233,19 +256,25 @@ export default function PlayerDetailPage() {
           </div>
         )}
 
-        <button
-          onClick={handleBook}
-          disabled={booking}
-          className="book-btn"
-          style={{
-            border: 'none',
-            cursor: booking ? 'wait' : 'pointer',
-            fontFamily: 'inherit',
-            width: '100%',
-          }}
-        >
-          {booking ? '跳转中…' : '🔥 立即预约'}
-        </button>
+        {/* 底部两个按钮 */}
+        <div className="detail-actions">
+          <button
+            onClick={handleChat}
+            disabled={chatting}
+            className="detail-chat-btn"
+          >
+            {chatting ? '打开中…' : '💬 聊一聊'}
+          </button>
+
+          <button
+            onClick={handleBook}
+            disabled={booking}
+            className="book-btn"
+            style={{ margin: 0, flex: 2 }}
+          >
+            {booking ? '跳转中…' : '🔥 立即预约'}
+          </button>
+        </div>
       </div>
     </Shell>
   );

@@ -2,7 +2,7 @@
 
 export type Conversation = {
   id: number;
-  order_id: number;
+  order_id: number | null;
   member_user_id: number;
   member_name: string;
   player_user_id: number;
@@ -27,13 +27,19 @@ export type Message = {
   created_at: string;
 };
 
+// ============================================================
+// 获取或创建会话
+// - 传 orderId：订单会话
+// - 传 playerId：咨询会话（无订单）
+// ============================================================
 export async function getOrCreateConversation(params: {
-  orderId: number;
+  orderId?: number;
+  playerId?: number;
 }): Promise<{ ok: boolean; conversation?: Conversation; error?: string }> {
   const res = await fetch('/api/chat/conversations', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ orderId: params.orderId }),
+    body: JSON.stringify(params),
   });
   const data = await res.json();
   return data.ok
@@ -48,9 +54,7 @@ export async function fetchConversations(): Promise<Conversation[]> {
   return data.conversations as Conversation[];
 }
 
-export async function fetchConversation(
-  id: number
-): Promise<{
+export async function fetchConversation(id: number): Promise<{
   conversation: Conversation | null;
   messages: Message[];
   canSend: boolean;
@@ -107,9 +111,6 @@ export async function fetchNewMessages(
   };
 }
 
-// ============================================================
-// 切换拒收开关（会员用）
-// ============================================================
 export async function toggleMemberMute(
   conversationId: number,
   muted: boolean

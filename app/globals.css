@@ -4673,3 +4673,60 @@ button {
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
 }
+
+/* ============================================================
+   详情页底部按钮 + 卡片聊天按钮
+   ============================================================ */
+.detail-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+}
+
+.detail-chat-btn {
+  flex: 1;
+  padding: 0.9rem;
+  border-radius: 0.7rem;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #818cf8;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.detail-chat-btn:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.25);
+}
+
+.detail-chat-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-chat-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 0.6rem;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #818cf8;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.btn-chat-card:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.3);
+}
+
+.btn-chat-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

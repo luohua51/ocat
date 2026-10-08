@@ -166,7 +166,11 @@ export default function MemberChatRoomPage() {
           </div>
           <div>
             <div className="chat-room-peer-name">{conversation.player_name}</div>
-            <div className="chat-room-peer-sub">订单 #{conversation.order_id}</div>
+            <div className="chat-room-peer-sub">
+              {conversation.order_id
+                ? `订单 #${conversation.order_id}`
+                : '咨询会话'}
+            </div>
           </div>
         </div>
 
@@ -180,7 +184,9 @@ export default function MemberChatRoomPage() {
         </button>
       </div>
 
-      <ChatOrderCard orderId={conversation.order_id} role="member" />
+      {conversation.order_id && (
+        <ChatOrderCard orderId={conversation.order_id} role="member" />
+      )}
 
       <div className="chat-room-messages">
         {messages.length === 0 ? (
@@ -210,7 +216,14 @@ export default function MemberChatRoomPage() {
       </div>
 
       {memberMuted && (
-        <div className="chat-room-locked" style={{ background: 'rgba(255,122,0,0.1)', borderTopColor: 'rgba(255,122,0,0.3)', color: '#FF7A00' }}>
+        <div
+          className="chat-room-locked"
+          style={{
+            background: 'rgba(255,122,0,0.1)',
+            borderTopColor: 'rgba(255,122,0,0.3)',
+            color: '#FF7A00',
+          }}
+        >
           🔇 你已拒收此陪玩的消息。他可以查看历史消息，但无法再发送新消息。
         </div>
       )}

@@ -2,16 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { fetchPlayers, type PlayerDisplay } from '@/lib/db';
 import { GAMES, TIERS, TIER_COLORS, type Tier } from '@/lib/mock';
 import { sortPlayers } from '@/lib/utils';
 import { proxyImage } from '@/lib/image';
+import { getOrCreateConversation } from '@/lib/chat';
 
 export default function HomePage() {
+  const router = useRouter();
   const [game, setGame] = useState('全部');
   const [tier, setTier] = useState<'全部' | Tier>('全部');
   const [allPlayers, setAllPlayers] = useState<PlayerDisplay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [chattingId, setChattingId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchPlayers().then((data) => {
@@ -27,6 +31,33 @@ export default function HomePage() {
   });
 
   const list = sortPlayers(filtered);
+
+  async function handleChat(e: React.MouseEvent, playerId: number) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (chattingId) return;
+    setChattingId(playerId);
+
+    try {
+      const sRes = await fetch('/api/auth/session', { cache: 'no-store' });
+      const s = await sRes.json();
+
+      if (!s.ok || !s.user || s.user.role !== 'member') {
+        router.push(`/login?redirect=${encodeURIComponent('/')}`);
+        return;
+      }
+
+      const r = await getOrCreateConversation({ playerId });
+      if (!r.ok || !r.conversation) {
+        alert(r.error || '无法打开会话');
+        return;
+      }
+      router.push('/member/chat/' + r.conversation.id);
+    } finally {
+      setChattingId(null);
+    }
+  }
 
   return (
     <>
@@ -174,7 +205,24 @@ export default function HomePage() {
                   {p.price > 0 ? `¥${p.price}/时起` : '—'}
                 </div>
 
-                <span className="btn">查看详情</span>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 2fr',
+                    gap: '0.4rem',
+                    marginTop: '0.6rem',
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="btn-chat-card"
+                    onClick={(e) => handleChat(e, p.id)}
+                    disabled={chattingId === p.id}
+                  >
+                    {chattingId === p.id ? '…' : '💬'}
+                  </button>
+                  <span className="btn">查看详情</span>
+                </div>
               </Link>
             ))
           )}

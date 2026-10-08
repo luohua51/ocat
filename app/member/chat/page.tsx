@@ -8,7 +8,6 @@ export default function MemberChatPage() {
   const [list, setList] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 加载会话列表
   async function load() {
     const data = await fetchConversations();
     setList(data);
@@ -17,7 +16,6 @@ export default function MemberChatPage() {
 
   useEffect(() => {
     load();
-    // 每 5 秒轮询一次，自动刷新红点
     const timer = setInterval(load, 5000);
     return () => clearInterval(timer);
   }, []);
@@ -29,7 +27,8 @@ export default function MemberChatPage() {
     const diff = now.getTime() - d.getTime();
     if (diff < 60 * 1000) return '刚刚';
     if (diff < 60 * 60 * 1000) return Math.floor(diff / 60000) + ' 分钟前';
-    if (diff < 24 * 60 * 60 * 1000) return Math.floor(diff / 3600000) + ' 小时前';
+    if (diff < 24 * 60 * 60 * 1000)
+      return Math.floor(diff / 3600000) + ' 小时前';
     return d.toLocaleDateString('zh-CN');
   }
 
@@ -45,7 +44,7 @@ export default function MemberChatPage() {
       {loading ? (
         <div className="member-empty">加载中…</div>
       ) : list.length === 0 ? (
-        <div className="member-empty">暂无会话，去下单或联系陪玩试试</div>
+        <div className="member-empty">暂无会话，去挑选陪玩聊聊吧</div>
       ) : (
         <div className="member-chat-list">
           {list.map((c) => (
@@ -58,7 +57,38 @@ export default function MemberChatPage() {
                 {c.player_name.charAt(0)}
               </div>
               <div className="member-chat-body">
-                <div className="member-chat-name">{c.player_name}</div>
+                <div className="member-chat-name">
+                  {c.player_name}
+                  {c.order_id ? (
+                    <span
+                      style={{
+                        marginLeft: '0.5rem',
+                        fontSize: '0.68rem',
+                        color: '#FF7A00',
+                        background: 'rgba(255,122,0,0.15)',
+                        padding: '0.1rem 0.4rem',
+                        borderRadius: '0.3rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      订单
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        marginLeft: '0.5rem',
+                        fontSize: '0.68rem',
+                        color: '#818cf8',
+                        background: 'rgba(99,102,241,0.15)',
+                        padding: '0.1rem 0.4rem',
+                        borderRadius: '0.3rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      咨询
+                    </span>
+                  )}
+                </div>
                 <div className="member-chat-msg">
                   {c.last_message || '（还没消息）'}
                 </div>
