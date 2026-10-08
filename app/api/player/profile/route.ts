@@ -83,47 +83,24 @@ export async function PUT(req: Request) {
     }
   }
 
-  // 2. player_profiles
-  const { data: existingProfile, error: queryErr } = await supabaseAdmin
-    .from('player_profiles')
-    .select('id')
-    .eq('player_id', me.playerId)
-    .maybeSingle();
-
-  if (queryErr) {
-    console.error('[profile PUT] profile query error:', queryErr);
-  }
-
+  // 2. player_profiles：用 upsert，一次搞定（不管有没有都行）
   const patch: any = { player_id: me.playerId };
   if (signature !== undefined) patch.signature = signature;
   if (description !== undefined) patch.description = description;
   if (availableTime !== undefined) patch.available_time = availableTime;
 
-  console.log('[profile PUT] patch:', patch, 'hasExisting:', !!existingProfile);
+  console.log('[profile PUT] upsert patch:', patch);
 
-  if (existingProfile) {
-    const { error } = await supabaseAdmin
-      .from('player_profiles')
-      .update(patch)
-      .eq('id', existingProfile.id);
-    if (error) {
-      console.error('[profile PUT] profile update error:', error);
-      return Response.json(
-        { ok: false, error: '更新资料失败：' + error.message },
-        { status: 500 }
-      );
-    }
-  } else {
-    const { error } = await supabaseAdmin
-      .from('player_profiles')
-      .insert(patch);
-    if (error) {
-      console.error('[profile PUT] profile insert error:', error);
-      return Response.json(
-        { ok: false, error: '创建资料失败：' + error.message },
-        { status: 500 }
-      );
-    }
+  const { error: upsertErr } = await supabaseAdmin
+    .from('player_profiles')
+    .upsert(patch, { onConflict: 'player_id' });
+
+  if (upsertErr) {
+    console.error('[profile PUT] profile upsert error:', upsertErr);
+    return Response.json(
+      { ok: false, error: '更新资料失败：' + upsertErr.message },
+      { status: 500 }
+    );
   }
 
   // 3. 能力
