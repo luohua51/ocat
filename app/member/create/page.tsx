@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createOrder } from '@/lib/order';
+import { createOrder, calcOrderPrice } from '@/lib/order';
 import { fetchCurrentUser, type User } from '@/lib/auth';
 
 const ALL_TIERS = ['娱乐', '技术', '金牌', '魔王', '明星'];
@@ -39,9 +39,12 @@ function CreateContent() {
   const [hours, setHours] = useState(1);
   const [remark, setRemark] = useState('');
 
-  // 新增：下单类型 + 预约时间
   const [timing, setTiming] = useState<'instant' | 'scheduled'>('instant');
   const [scheduledAt, setScheduledAt] = useState('');
+
+  // 实时价格
+  const [unitPrice, setUnitPrice] = useState<number>(0);
+  const [priceLoading, setPriceLoading] = useState(false);
 
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -80,6 +83,24 @@ function CreateContent() {
     }
     load();
   }, []);
+
+  // 指定陪玩 + 选定游戏档位后，查单价
+  useEffect(() => {
+    if (!playerId || !gameId || !tier) {
+      setUnitPrice(0);
+      return;
+    }
+    setPriceLoading(true);
+    fetch(`/api/public/price?playerId=${playerId}&gameId=${gameId}&tier=${encodeURIComponent(tier)}`, {
+      cache: 'no-store',
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setUnitPrice(data.ok ? Number(data.unitPrice) : 0);
+      })
+      .catch(() => setUnitPrice(0))
+      .finally(() => setPriceLoading(false));
+  }, [playerId, gameId, tier]);
 
   const player = players.find((p) => p.id === playerId);
   const selectedGame = games.find((g) => g.id === gameId);
@@ -133,6 +154,13 @@ function CreateContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId]);
 
+  // 前端展示用折后价（后端会重算，以服务器时间为准）
+  const preview = useMemo(() => {
+    if (!isDesignated || unitPrice <= 0 || hours <= 0) return null;
+    const original = unitPrice * hours;
+    return calcOrderPrice(original, true);
+  }, [isDesignated, unitPrice, hours]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -179,7 +207,9 @@ function CreateContent() {
 
       <div className="member-discount-banner">
         <span>🎉 会员专享</span>
-        <span>平时 <b>95折</b> · 周末 <b>85折</b></span>
+        <span>
+          平时 <b>95折</b> · 周末 <b>85折</b>
+        </span>
       </div>
 
       <form onSubmit={handleSubmit} className="member-create-form">
@@ -342,6 +372,86 @@ function CreateContent() {
             onChange={(e) => setRemark(e.target.value)}
           />
         </div>
+
+        {/* 价格预览 */}
+        {isDesignated && (
+          <div
+            style={{
+              marginTop: '1rem',
+              padding: '1rem 1.1rem',
+              borderRadius: 12,
+              background: 'rgba(255,122,0,0.08)',
+              border: '1px solid rgba(255,122,0,0.3)',
+            }}
+          >
+            {priceLoading ? (
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>
+                正在计算价格…
+              </div>
+            ) : preview ? (
+              <>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '0.85rem',
+                    color: 'rgba(255,255,255,0.6)',
+                    marginBottom: '0.4rem',
+                  }}
+                >
+                  <span>原价</span>
+                  <span>¥{preview.originalPrice.toFixed(2)}</span>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '0.85rem',
+                    color: '#34d399',
+                    marginBottom: '0.4rem',
+                  }}
+                >
+                  <span>{preview.discountLabel}</span>
+                  <span>-¥{preview.discountAmount.toFixed(2)}</span>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '1.05rem',
+                    fontWeight: 800,
+                    color: '#FF7A00',
+                    paddingTop: '0.4rem',
+                    borderTop: '1px dashed rgba(255,122,0,0.3)',
+                  }}
+                >
+                  <span>实付</span>
+                  <span>¥{preview.finalPrice.toFixed(2)}</span>
+                </div>
+              </>
+            ) : (
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>
+                该档位暂无价格，请更换档位
+              </div>
+            )}
+          </div>
+        )}
+
+        {!isDesignated && (
+          <div
+            style={{
+              marginTop: '1rem',
+              padding: '0.85rem 1rem',
+              borderRadius: 10,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              fontSize: '0.85rem',
+              color: 'rgba(255,255,255,0.6)',
+            }}
+          >
+            🎯 抢单池订单会在陪玩接单时按该陪玩报价计算，会员同样享受 <b style={{ color: '#FF7A00' }}>95折 / 周末85折</b>。
+          </div>
+        )}
 
         {error && <div className="member-create-error">{error}</div>}
 
