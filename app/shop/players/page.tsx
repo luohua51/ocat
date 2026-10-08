@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchUsers, createUser, resetPasswordByAdmin, deleteUser, type User } from '@/lib/auth';
+import { fetchUsers, createUser, resetPasswordByAdmin, type User } from '@/lib/auth';
 
 export default function ShopPlayersPage() {
   const [list, setList] = useState<User[]>([]);
@@ -14,7 +14,6 @@ export default function ShopPlayersPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // 店长的 fetchUsers 在后端会自动按 shopId 过滤
     fetchUsers({ role: 'player' }).then(setList);
   }, [refreshKey]);
 
@@ -47,22 +46,59 @@ export default function ShopPlayersPage() {
     setRefreshKey((k) => k + 1);
   }
 
-  async function handleDelete(u: User) {
-    if (!confirm(`将「${u.nickname}」移出本店？`)) return;
-    const r = await deleteUser(u.id);
-    alert(r.ok ? '已移出' : r.error || '失败');
-    setRefreshKey((k) => k + 1);
+  async function handleRemove(u: User) {
+    if (
+      !confirm(
+        `确定将「${u.nickname}」移出本店？\n\n` +
+          `移出后：\n` +
+          `· 该陪玩变成散陪\n` +
+          `· 本店的认证会被清空\n` +
+          `· 账号不会被删除，他还能继续用\n` +
+          `· 首页依然能看到他`
+      )
+    ) {
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/shop/players/${u.id}/remove`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      setSubmitting(false);
+
+      if (!data.ok) {
+        alert(data.error || '移出失败');
+        return;
+      }
+
+      alert('已移出店铺，该陪玩现在为散陪');
+      setRefreshKey((k) => k + 1);
+    } catch (err: any) {
+      setSubmitting(false);
+      alert(err?.message || '网络错误');
+    }
   }
 
   return (
     <>
       <div className="shop-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+          }}
+        >
           <div>
             <h1 className="shop-title">陪玩管理</h1>
             <p className="shop-subtitle">共 {list.length} 位本店陪玩</p>
           </div>
-          <button className="shop-btn-primary" onClick={() => setShowCreate(!showCreate)}>
+          <button
+            className="shop-btn-primary"
+            onClick={() => setShowCreate(!showCreate)}
+          >
             {showCreate ? '取消' : '➕ 新增陪玩'}
           </button>
         </div>
@@ -74,16 +110,30 @@ export default function ShopPlayersPage() {
           <div className="admin-form-grid">
             <div className="admin-form-field">
               <label>陪玩昵称</label>
-              <input type="text" placeholder="如：鸽子" value={newName} onChange={(e) => setNewName(e.target.value)} />
+              <input
+                type="text"
+                placeholder="如：鸽子"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
             </div>
             <div className="admin-form-field">
               <label>登录账号</label>
-              <input type="text" placeholder="如：cmmgezi" value={newAccount} onChange={(e) => setNewAccount(e.target.value)} />
+              <input
+                type="text"
+                placeholder="如：cmmgezi"
+                value={newAccount}
+                onChange={(e) => setNewAccount(e.target.value)}
+              />
             </div>
           </div>
           {error && <div className="admin-form-error">{error}</div>}
           <div className="admin-form-actions">
-            <button className="shop-btn-primary" onClick={handleCreate} disabled={submitting}>
+            <button
+              className="shop-btn-primary"
+              onClick={handleCreate}
+              disabled={submitting}
+            >
               {submitting ? '创建中…' : '确认创建'}
             </button>
           </div>
@@ -107,7 +157,14 @@ export default function ShopPlayersPage() {
           <tbody>
             {list.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.4)' }}>
+                <td
+                  colSpan={5}
+                  style={{
+                    textAlign: 'center',
+                    padding: '2rem',
+                    color: 'rgba(255,255,255,0.4)',
+                  }}
+                >
                   暂无陪玩
                 </td>
               </tr>
@@ -119,20 +176,45 @@ export default function ShopPlayersPage() {
                   <td>{u.nickname}</td>
                   <td>
                     {u.mustChangePassword ? (
-                      <span className="shop-badge shop-badge-orange">待修改</span>
+                      <span className="shop-badge shop-badge-orange">
+                        待修改
+                      </span>
                     ) : (
-                      <span className="shop-badge shop-badge-green">已修改</span>
+                      <span className="shop-badge shop-badge-green">
+                        已修改
+                      </span>
                     )}
                   </td>
                   <td>
-                    <button className="shop-btn-sm" onClick={() => handleReset(u)}>重置密码</button>
-                    <button className="shop-btn-sm shop-btn-danger" onClick={() => handleDelete(u)}>移出</button>
+                    <button
+                      className="shop-btn-sm"
+                      onClick={() => handleReset(u)}
+                    >
+                      重置密码
+                    </button>
+                    <button
+                      className="shop-btn-sm shop-btn-danger"
+                      onClick={() => handleRemove(u)}
+                      disabled={submitting}
+                    >
+                      移出店铺
+                    </button>
                   </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="shop-note" style={{ marginTop: '1.5rem' }}>
+        💡 说明：
+        <br />
+        · 「移出店铺」只是解除店铺关系，陪玩会变成散陪
+        <br />
+        · 账号不会删除，陪玩可以继续用
+        <br />
+        · 首页/详情页依然能看到他（散陪身份）
       </div>
     </>
   );
