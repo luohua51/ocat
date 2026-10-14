@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -109,7 +109,7 @@ export default function AdminDashboardPage() {
         <h2 className="admin-section-title">待处理</h2>
         <div className="admin-stat-card" style={{ maxWidth: '20rem' }}>
           <div className="admin-stat-label">待接单 / 抢单中</div>
-          <div className="admin-stat-value" style={{ color: '#F97316' }}>
+          <div className="admin-stat-value" style={{ color: '#E85D1F' }}>
             {stats.pendingOrders}
           </div>
         </div>

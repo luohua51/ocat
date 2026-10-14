@@ -1,175 +1,140 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import {
-  fetchOrder,
-  acceptOrder,
-  startOrder,
-  finishOrder,
-  ORDER_STATUS_TEXT,
-  type Order,
-} from '@/lib/order';
+import { useState } from 'react';
+import { submitReview } from '@/lib/order';
 
 type Props = {
   orderId: number;
-  role: 'member' | 'player';
-  onOrderUpdate?: (order: Order) => void;
+  toName: string;
+  toRole: 'member' | 'player';
+  onClose: () => void;
+  onSuccess: () => void;
 };
 
-export default function ChatOrderCard({ orderId, role, onOrderUpdate }: Props) {
-  const [order, setOrder] = useState<Order | null>(null);
-  const [working, setWorking] = useState(false);
+const REVIEW_TAGS = ['技术强', '态度好', '准时', '声音好听', '温柔', '幽默', '有耐心', '带我赢'];
 
-  async function load() {
-    const o = await fetchOrder(orderId);
-    setOrder(o);
-    onOrderUpdate?.(o);
+export default function ReviewModal({ orderId, toName, toRole, onClose, onSuccess }: Props) {
+  const [rating, setRating] = useState(5);
+  const [content, setContent] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  function toggleTag(tag: string) {
+    setTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
   }
 
-  useEffect(() => {
-    load();
-    // 每 5 秒刷新订单状态
-    const timer = setInterval(load, 5000);
-    return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderId]);
-
-  async function handleAccept() {
-    if (!order) return;
-    if (!confirm('确认接单？')) return;
-    setWorking(true);
-    const r = await acceptOrder(order.id);
-    setWorking(false);
-    if (!r.ok) return alert(r.error || '接单失败');
-    alert('接单成功！');
-    load();
+  async function handleSubmit() {
+    if (submitting) return;
+    setSubmitting(true);
+    const res = await submitReview({
+      orderId,
+      rating,
+      content: content.trim() || undefined,
+      tags: tags.length > 0 ? tags : undefined,
+      isAnonymous,
+    });
+    setSubmitting(false);
+    if (!res.ok) {
+      alert(res.error || '评价失败');
+      return;
+    }
+    onSuccess();
   }
 
-  async function handleStart() {
-    if (!order) return;
-    if (!confirm('确认开始服务？')) return;
-    setWorking(true);
-    const r = await startOrder(order.id);
-    setWorking(false);
-    if (!r.ok) return alert(r.error || '操作失败');
-    load();
-  }
-
-  async function handleFinish() {
-    if (!order) return;
-    if (!confirm('确认完成服务？')) return;
-    setWorking(true);
-    const r = await finishOrder(order.id);
-    setWorking(false);
-    if (!r.ok) return alert(r.error || '操作失败');
-    load();
-  }
-
-  if (!order) return null;
-
-  const isPooling = order.status === 'pooling';
-  const isLocked = order.status === 'locked';
-  const isInService = order.status === 'in_service';
-  const isFinished = order.status === 'finished';
-  const isDone = order.status === 'completed' || order.status === 'reviewed';
-  const isMyOrder = role === 'player' && order.player_id;
+  const roleLabel = toRole === 'player' ? '陪玩' : '老板';
 
   return (
-    <div className="chat-order-card">
-      <div className="chat-order-card-top">
-        <div>
-          <div className="chat-order-card-title">
-            {order.game_name} · {order.tier}
-          </div>
-          <div className="chat-order-card-sub">
-            {role === 'member' ? `陪玩：${order.player_name || '待分配'}` : `老板：${order.member_name}`}
-            {' · '}
-            {order.duration_hours}h
-            {order.boss_rank ? ` · 段位：${order.boss_rank}` : ''}
-          </div>
-        </div>
-        <span
-          className="chat-order-card-status"
-          style={{
-            background:
-              order.status === 'pooling'
-                ? 'rgba(99,102,241,0.2)'
-                : isDone
-                ? 'rgba(5,150,105,0.2)'
-                : 'rgba(255,122,0,0.2)',
-            color:
-              order.status === 'pooling'
-                ? '#818cf8'
-                : isDone
-                ? '#34d399'
-                : '#FF7A00',
-          }}
-        >
-          {ORDER_STATUS_TEXT[order.status] || order.status}
-        </span>
-      </div>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="review-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="review-modal-title">评价{roleLabel}</div>
+        <div className="review-modal-sub">给 {toName} 的服务打分</div>
 
-      {order.remark && (
-        <div className="chat-order-card-remark">📝 {order.remark}</div>
-      )}
-
-      <div className="chat-order-card-bottom">
-        <div className="chat-order-card-amount">
-          {order.final_amount > 0 ? `¥${order.final_amount.toFixed(2)}` : '价格待定'}
+        <div className="review-stars">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={`review-star${n <= rating ? ' active' : ''}`}
+              onClick={() => setRating(n)}
+            >
+              ★
+            </button>
+          ))}
+          <span className="review-star-label">{rating}.0</span>
         </div>
 
-        <div className="chat-order-card-actions">
-          <Link
-            href={`/${role === 'member' ? 'member' : 'player'}/orders/${order.id}`}
-            className="chat-order-card-btn ghost"
+        <div className="review-tags">
+          {REVIEW_TAGS.map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              className={`review-tag${tags.includes(tag) ? ' active' : ''}`}
+              onClick={() => toggleTag(tag)}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+
+        <textarea
+          className="review-textarea"
+          rows={4}
+          placeholder="写下你的评价（选填）"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+        />
+
+        <label className="review-anon">
+          <input
+            type="checkbox"
+            checked={isAnonymous}
+            onChange={(e) => setIsAnonymous(e.target.checked)}
+          />
+          匿名评价
+        </label>
+
+        <div style={{ display: 'flex', gap: '0.6rem' }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              flex: 1,
+              padding: '0.7rem',
+              borderRadius: '0.55rem',
+              border: '1px solid rgba(255,255,255,0.15)',
+              background: 'rgba(255,255,255,0.05)',
+              color: '#fff',
+              fontSize: '0.95rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
           >
-            查看订单
-          </Link>
-
-          {role === 'player' && isPooling && (
-            <button
-              className="chat-order-card-btn primary"
-              onClick={handleAccept}
-              disabled={working}
-            >
-              {working ? '处理中…' : '🔥 接单'}
-            </button>
-          )}
-
-          {role === 'player' && isMyOrder && isLocked && (
-            <button
-              className="chat-order-card-btn primary"
-              onClick={handleStart}
-              disabled={working}
-            >
-              {working ? '处理中…' : '▶ 开始服务'}
-            </button>
-          )}
-
-          {role === 'player' && isMyOrder && isInService && (
-            <button
-              className="chat-order-card-btn primary"
-              onClick={handleFinish}
-              disabled={working}
-            >
-              {working ? '处理中…' : '✅ 完成服务'}
-            </button>
-          )}
-
-          {role === 'player' && isMyOrder && isFinished && (
-            <span className="chat-order-card-tip">等待老板确认</span>
-          )}
-
-          {role === 'player' && !isMyOrder && !isPooling && (
-            <span className="chat-order-card-tip" style={{ color: '#f87171' }}>
-              已被他人接走
-            </span>
-          )}
-
-          {role === 'member' && isPooling && (
-            <span className="chat-order-card-tip">等待陪玩接单</span>
-          )}
+            取消
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting}
+            style={{
+              flex: 1,
+              padding: '0.7rem',
+              borderRadius: '0.55rem',
+              border: 'none',
+              background: 'linear-gradient(135deg, #FF6F2C, #E85D1F)',
+              color: '#fff',
+              fontSize: '0.95rem',
+              fontWeight: 700,
+              cursor: submitting ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+              opacity: submitting ? 0.6 : 1,
+            }}
+          >
+            {submitting ? '提交中…' : '提交评价'}
+          </button>
         </div>
       </div>
     </div>

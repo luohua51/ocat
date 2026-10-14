@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -78,7 +78,7 @@ export default function PlayerHomePage() {
         </div>
         <div className="player-stat-card">
           <div className="player-stat-label">钱包余额</div>
-          <div className="player-stat-value" style={{ color: '#FF7A00' }}>
+          <div className="player-stat-value" style={{ color: '#FF6F2C' }}>
             ¥{wallet.balance.toFixed(2)}
           </div>
         </div>

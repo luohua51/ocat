@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { fetchMyWallet, type WalletInfo } from '@/lib/order';
@@ -26,7 +26,7 @@ export default function MemberWalletPage() {
   }
 
   const stats = [
-    { label: '余额', value: `¥${wallet.balance.toFixed(2)}`, color: '#FF7A00' },
+    { label: '余额', value: `¥${wallet.balance.toFixed(2)}`, color: '#FF6F2C' },
     { label: '累计充值', value: `¥${wallet.totalIncome.toFixed(2)}`, color: '#34d399' },
   ];
 
@@ -79,7 +79,7 @@ export default function MemberWalletPage() {
             padding: '0.85rem 1rem',
             borderRadius: 10,
             border: 'none',
-            background: '#FF7A00',
+            background: '#FF6F2C',
             color: '#fff',
             fontSize: '0.95rem',
             fontWeight: 700,
@@ -156,7 +156,7 @@ export default function MemberWalletPage() {
                 padding: '0.6rem 2rem',
                 borderRadius: 8,
                 border: 'none',
-                background: '#FF7A00',
+                background: '#FF6F2C',
                 color: '#fff',
                 fontSize: '0.9rem',
                 fontWeight: 700,

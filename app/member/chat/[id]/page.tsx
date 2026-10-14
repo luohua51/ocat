@@ -219,9 +219,9 @@ export default function MemberChatRoomPage() {
         <div
           className="chat-room-locked"
           style={{
-            background: 'rgba(255,122,0,0.1)',
-            borderTopColor: 'rgba(255,122,0,0.3)',
-            color: '#FF7A00',
+            background: 'rgba(255,111,44,0.1)',
+            borderTopColor: 'rgba(255,111,44,0.3)',
+            color: '#FF6F2C',
           }}
         >
           🔇 你已拒收此陪玩的消息。他可以查看历史消息，但无法再发送新消息。

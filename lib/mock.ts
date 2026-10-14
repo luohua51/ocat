@@ -55,8 +55,8 @@ export const TIERS: Tier[] = ['娱乐', '技术', '金牌', '魔王', '明星'];
 export const TIER_COLORS: Record<Tier, string> = {
   明星: 'linear-gradient(135deg,#FF69B4,#FFD700)',
   魔王: 'linear-gradient(135deg,#8B0000,#FF4500)',
-  金牌: 'linear-gradient(135deg,#FFB300,#FF7A00)',
-  技术: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+  金牌: 'linear-gradient(135deg,#FFB300,#FF6F2C)',
+  技术: 'linear-gradient(135deg,#5BC4B8,#A1E6DD)',
   娱乐: '#6b7280',
 };
 

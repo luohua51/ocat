@@ -171,7 +171,7 @@ export default function MemberOrderDetailPage() {
             <span
               className="member-detail-val"
               style={{
-                color: isPendingPrice ? '#818cf8' : '#FF7A00',
+                color: isPendingPrice ? '#A1E6DD' : '#FF6F2C',
                 fontSize: isPendingPrice ? '1rem' : '1.3rem',
                 fontWeight: 800,
               }}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { fetchAllTransactions, type AdminTx, type TxSummary } from '@/lib/admin';
@@ -60,7 +60,7 @@ export default function AdminTransactionsPage() {
         </div>
         <div className="admin-stat-card">
           <div className="admin-stat-label">陪玩收入</div>
-          <div className="admin-stat-value" style={{ color: '#FF7A00' }}>
+          <div className="admin-stat-value" style={{ color: '#FF6F2C' }}>
             ¥{summary.totalIncome.toFixed(2)}
           </div>
         </div>

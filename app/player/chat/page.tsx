@@ -64,8 +64,8 @@ export default function PlayerChatPage() {
                       style={{
                         marginLeft: '0.5rem',
                         fontSize: '0.68rem',
-                        color: '#FF7A00',
-                        background: 'rgba(255,122,0,0.15)',
+                        color: '#FF6F2C',
+                        background: 'rgba(255,111,44,0.15)',
                         padding: '0.1rem 0.4rem',
                         borderRadius: '0.3rem',
                         fontWeight: 700,
@@ -78,7 +78,7 @@ export default function PlayerChatPage() {
                       style={{
                         marginLeft: '0.5rem',
                         fontSize: '0.68rem',
-                        color: '#818cf8',
+                        color: '#A1E6DD',
                         background: 'rgba(99,102,241,0.15)',
                         padding: '0.1rem 0.4rem',
                         borderRadius: '0.3rem',

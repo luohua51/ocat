@@ -275,10 +275,10 @@ export default function ShopPricesPage() {
             <div
               style={{
                 padding: '0.7rem 1rem',
-                background: 'rgba(255,122,0,0.06)',
-                border: '1px dashed rgba(255,122,0,0.3)',
+                background: 'rgba(255,111,44,0.06)',
+                border: '1px dashed rgba(255,111,44,0.3)',
                 borderRadius: '0.6rem',
-                color: '#FF7A00',
+                color: '#FF6F2C',
                 fontSize: '0.88rem',
                 fontWeight: 600,
               }}

@@ -380,8 +380,8 @@ function CreateContent() {
               marginTop: '1rem',
               padding: '1rem 1.1rem',
               borderRadius: 12,
-              background: 'rgba(255,122,0,0.08)',
-              border: '1px solid rgba(255,122,0,0.3)',
+              background: 'rgba(255,111,44,0.08)',
+              border: '1px solid rgba(255,111,44,0.3)',
             }}
           >
             {priceLoading ? (
@@ -420,9 +420,9 @@ function CreateContent() {
                     justifyContent: 'space-between',
                     fontSize: '1.05rem',
                     fontWeight: 800,
-                    color: '#FF7A00',
+                    color: '#FF6F2C',
                     paddingTop: '0.4rem',
-                    borderTop: '1px dashed rgba(255,122,0,0.3)',
+                    borderTop: '1px dashed rgba(255,111,44,0.3)',
                   }}
                 >
                   <span>实付</span>
@@ -449,7 +449,7 @@ function CreateContent() {
               color: 'rgba(255,255,255,0.6)',
             }}
           >
-            🎯 抢单池订单会在陪玩接单时按该陪玩报价计算，会员同样享受 <b style={{ color: '#FF7A00' }}>95折 / 周末85折</b>。
+            🎯 抢单池订单会在陪玩接单时按该陪玩报价计算，会员同样享受 <b style={{ color: '#FF6F2C' }}>95折 / 周末85折</b>。
           </div>
         )}
 

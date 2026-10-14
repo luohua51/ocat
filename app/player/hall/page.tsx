@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -71,7 +71,7 @@ export default function PlayerHallPage() {
                   <span className="player-hall-game">{o.game_name}</span>
                   <span className="player-hall-tier">{o.tier}</span>
                 </div>
-                <div className="player-hall-amount" style={{ color: '#818cf8', fontSize: '0.95rem' }}>
+                <div className="player-hall-amount" style={{ color: '#A1E6DD', fontSize: '0.95rem' }}>
                   价格待定
                 </div>
               </div>
@@ -110,7 +110,7 @@ export default function PlayerHallPage() {
                   className="player-btn-ghost"
                   onClick={() => handleChat(o)}
                   disabled={chatting === o.id}
-                  style={{ padding: '0.7rem', borderColor: 'rgba(99,102,241,0.4)', color: '#818cf8' }}
+                  style={{ padding: '0.7rem', borderColor: 'rgba(99,102,241,0.4)', color: '#A1E6DD' }}
                 >
                   {chatting === o.id ? '打开中…' : '💬 联系老板'}
                 </button>

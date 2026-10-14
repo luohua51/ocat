@@ -186,7 +186,7 @@ export default function PlayerDetailPage() {
 
         <div className="stat-grid" style={{ marginTop: '1.2rem' }}>
           <div className="stat-box" style={{ background: '#FFF3E6' }}>
-            <div className="stat-num" style={{ color: '#F97316' }}>
+            <div className="stat-num" style={{ color: '#E85D1F' }}>
               {player.weekly_orders || 0}
             </div>
             <div className="stat-label">上周接单</div>
@@ -249,7 +249,7 @@ export default function PlayerDetailPage() {
         {profile.available_time && (
           <div className="section">
             <div className="section-title">接单时间</div>
-            <div style={{ color: '#F97316', fontWeight: 600 }}>
+            <div style={{ color: '#E85D1F', fontWeight: 600 }}>
               ⏰ {profile.available_time}
             </div>
           </div>

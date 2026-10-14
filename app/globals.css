@@ -55,7 +55,7 @@ button {
 .navbar .brand {
   font-size: 1.3rem;
   font-weight: 800;
-  color: #FF7A00;
+  color: #FF6F2C;
 }
 
 .navbar .nav-links {
@@ -65,8 +65,8 @@ button {
 
 .navbar .nav-links a {
   color: #fff;
-  background: rgba(255, 122, 0, 0.15);
-  border: 1px solid rgba(255, 122, 0, 0.4);
+  background: rgba(255, 111, 44, 0.15);
+  border: 1px solid rgba(255, 111, 44, 0.4);
   padding: 0.4rem 1rem;
   border-radius: 999px;
   font-size: 0.88rem;
@@ -74,7 +74,7 @@ button {
 }
 
 .navbar .nav-links a:hover {
-  background: #FF7A00;
+  background: #FF6F2C;
 }
 
 /* ============================================================
@@ -93,7 +93,7 @@ button {
 
 .hero h1 {
   font-size: 2rem;
-  color: #FF7A00;
+  color: #FF6F2C;
   margin-bottom: 0.5rem;
   font-weight: 800;
 }
@@ -121,7 +121,7 @@ button {
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(255, 122, 0, 0.25);
+  box-shadow: 0 12px 32px rgba(255, 111, 44, 0.25);
 }
 
 .card .avatar {
@@ -133,7 +133,7 @@ button {
   align-items: center;
   justify-content: center;
   font-size: 3rem;
-  color: #FF7A00;
+  color: #FF6F2C;
   font-weight: 800;
   overflow: hidden;
   margin-bottom: 0.8rem;
@@ -160,7 +160,7 @@ button {
 }
 
 .card .price {
-  color: #FF7A00;
+  color: #FF6F2C;
   font-weight: 800;
   font-size: 1.05rem;
   margin-top: 0.6rem;
@@ -170,7 +170,7 @@ button {
   display: block;
   margin-top: 0.8rem;
   text-align: center;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   color: #fff;
   padding: 0.55rem;
   border-radius: 0.6rem;
@@ -211,13 +211,13 @@ button {
 }
 
 .filter-chip:hover {
-  border-color: #FF7A00;
-  color: #FF7A00;
+  border-color: #FF6F2C;
+  color: #FF6F2C;
 }
 
 .filter-chip.active {
-  background: #FF7A00;
-  border-color: #FF7A00;
+  background: #FF6F2C;
+  border-color: #FF6F2C;
   color: #fff;
   font-weight: 700;
 }
@@ -253,7 +253,7 @@ button {
   align-items: center;
   justify-content: center;
   font-size: 3.5rem;
-  color: #FF7A00;
+  color: #FF6F2C;
   font-weight: 800;
   overflow: hidden;
 }
@@ -320,7 +320,7 @@ button {
 
 .tag {
   background: #FFF3E6;
-  color: #FF7A00;
+  color: #FF6F2C;
   padding: 0.25rem 0.7rem;
   border-radius: 999px;
   font-size: 0.85rem;
@@ -337,7 +337,7 @@ button {
   display: block;
   margin-top: 1.5rem;
   text-align: center;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   color: #fff;
   padding: 0.9rem;
   border-radius: 0.7rem;
@@ -375,7 +375,7 @@ button {
   text-align: center;
   font-size: 1.5rem;
   font-weight: 800;
-  color: #FF7A00;
+  color: #FF6F2C;
   margin-bottom: 0.3rem;
 }
 
@@ -411,8 +411,8 @@ button {
 }
 
 .field input:focus {
-  border-color: #FF7A00;
-  box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.15);
+  border-color: #FF6F2C;
+  box-shadow: 0 0 0 3px rgba(255, 111, 44, 0.15);
 }
 
 .field input::placeholder {
@@ -423,7 +423,7 @@ button {
   width: 100%;
   padding: 0.85rem;
   border-radius: 0.6rem;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   color: #fff;
   border: none;
   font-size: 1rem;
@@ -459,7 +459,7 @@ button {
 }
 
 .auth-hint a {
-  color: #FF7A00;
+  color: #FF6F2C;
   font-weight: 700;
   margin-left: 0.3rem;
 }
@@ -481,8 +481,8 @@ button {
 .auth-demo {
   margin-top: 1.2rem;
   padding: 0.8rem 1rem;
-  background: rgba(255, 122, 0, 0.08);
-  border: 1px dashed rgba(255, 122, 0, 0.3);
+  background: rgba(255, 111, 44, 0.08);
+  border: 1px dashed rgba(255, 111, 44, 0.3);
   border-radius: 0.6rem;
   font-size: 0.78rem;
   line-height: 1.7;
@@ -491,7 +491,7 @@ button {
 
 .auth-demo .demo-title {
   font-weight: 700;
-  color: #FF7A00;
+  color: #FF6F2C;
   margin-bottom: 0.3rem;
 }
 
@@ -506,7 +506,7 @@ button {
 }
 
 .auth-back a:hover {
-  color: #FF7A00;
+  color: #FF6F2C;
 }
 
 /* ============================================================
@@ -533,7 +533,7 @@ button {
   padding: 1.2rem 1.2rem;
   font-size: 1.2rem;
   font-weight: 800;
-  color: #FF7A00;
+  color: #FF6F2C;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -558,12 +558,12 @@ button {
 }
 
 .admin-nav-item:hover {
-  background: rgba(255, 122, 0, 0.1);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.1);
+  color: #FF6F2C;
 }
 
 .admin-nav-item.active {
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   color: #fff;
   font-weight: 700;
 }
@@ -590,9 +590,9 @@ button {
   width: 100%;
   padding: 0.5rem;
   border-radius: 0.45rem;
-  background: rgba(255, 122, 0, 0.15);
-  border: 1px solid rgba(255, 122, 0, 0.4);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.15);
+  border: 1px solid rgba(255, 111, 44, 0.4);
+  color: #FF6F2C;
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
@@ -601,7 +601,7 @@ button {
 }
 
 .admin-logout:hover {
-  background: #FF7A00;
+  background: #FF6F2C;
   color: #fff;
 }
 
@@ -698,7 +698,7 @@ button {
 }
 
 .admin-table tbody tr:hover {
-  background: rgba(255, 122, 0, 0.06);
+  background: rgba(255, 111, 44, 0.06);
 }
 
 .admin-badge {
@@ -722,16 +722,16 @@ button {
 }
 
 .admin-badge-orange {
-  background: rgba(255, 122, 0, 0.2);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.2);
+  color: #FF6F2C;
 }
 
 .admin-btn-sm {
   padding: 0.3rem 0.8rem;
   border-radius: 0.4rem;
-  background: rgba(255, 122, 0, 0.15);
-  border: 1px solid rgba(255, 122, 0, 0.4);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.15);
+  border: 1px solid rgba(255, 111, 44, 0.4);
+  color: #FF6F2C;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
@@ -740,7 +740,7 @@ button {
 }
 
 .admin-btn-sm:hover {
-  background: #FF7A00;
+  background: #FF6F2C;
   color: #fff;
 }
 
@@ -793,7 +793,7 @@ button {
   padding: 1.2rem 1.2rem;
   font-size: 1.2rem;
   font-weight: 800;
-  color: #FF7A00;
+  color: #FF6F2C;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -818,12 +818,12 @@ button {
 }
 
 .member-nav-item:hover {
-  background: rgba(255, 122, 0, 0.1);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.1);
+  color: #FF6F2C;
 }
 
 .member-nav-item.active {
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   color: #fff;
   font-weight: 700;
 }
@@ -850,9 +850,9 @@ button {
   width: 100%;
   padding: 0.5rem;
   border-radius: 0.45rem;
-  background: rgba(255, 122, 0, 0.15);
-  border: 1px solid rgba(255, 122, 0, 0.4);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.15);
+  border: 1px solid rgba(255, 111, 44, 0.4);
+  color: #FF6F2C;
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
@@ -861,7 +861,7 @@ button {
 }
 
 .member-logout:hover {
-  background: #FF7A00;
+  background: #FF6F2C;
   color: #fff;
 }
 
@@ -904,8 +904,8 @@ button {
 }
 
 .member-action-card:hover {
-  background: rgba(255, 122, 0, 0.1);
-  border-color: rgba(255, 122, 0, 0.4);
+  background: rgba(255, 111, 44, 0.1);
+  border-color: rgba(255, 111, 44, 0.4);
   transform: translateY(-2px);
 }
 
@@ -939,7 +939,7 @@ button {
 
 .member-more {
   font-size: 0.85rem;
-  color: #FF7A00;
+  color: #FF6F2C;
 }
 
 .member-more:hover {
@@ -973,8 +973,8 @@ button {
 }
 
 .member-order-item:hover {
-  background: rgba(255, 122, 0, 0.08);
-  border-color: rgba(255, 122, 0, 0.3);
+  background: rgba(255, 111, 44, 0.08);
+  border-color: rgba(255, 111, 44, 0.3);
 }
 
 .member-order-title {
@@ -1021,7 +1021,7 @@ button {
 
 .member-player-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 24px rgba(255, 122, 0, 0.25);
+  box-shadow: 0 10px 24px rgba(255, 111, 44, 0.25);
 }
 
 .member-player-avatar {
@@ -1034,7 +1034,7 @@ button {
   align-items: center;
   justify-content: center;
   font-size: 1.6rem;
-  color: #FF7A00;
+  color: #FF6F2C;
   font-weight: 800;
   overflow: hidden;
 }
@@ -1065,12 +1065,12 @@ button {
 .member-player-price {
   font-size: 0.85rem;
   font-weight: 800;
-  color: #FF7A00;
+  color: #FF6F2C;
 }
 
 /* 钱包 */
 .member-wallet-card {
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   border-radius: 1rem;
   padding: 2rem 1.8rem;
   margin-bottom: 2rem;
@@ -1092,7 +1092,7 @@ button {
 
 .member-wallet-btn {
   background: rgba(255, 255, 255, 0.95);
-  color: #FF7A00;
+  color: #FF6F2C;
   border: none;
   padding: 0.6rem 1.5rem;
   border-radius: 999px;
@@ -1186,7 +1186,7 @@ button {
   height: 5rem;
   margin: 0 auto 1.5rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1225,8 +1225,8 @@ button {
 }
 
 .member-field input:focus {
-  border-color: #FF7A00;
-  box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.15);
+  border-color: #FF6F2C;
+  box-shadow: 0 0 0 3px rgba(255, 111, 44, 0.15);
 }
 
 .member-field input:disabled {
@@ -1238,7 +1238,7 @@ button {
   width: 100%;
   padding: 0.8rem;
   border-radius: 0.6rem;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   color: #fff;
   border: none;
   font-size: 0.95rem;
@@ -1251,7 +1251,7 @@ button {
 
 .member-save-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(255, 122, 0, 0.35);
+  box-shadow: 0 6px 16px rgba(255, 111, 44, 0.35);
 }
 
 /* 下单 / 订单 / 聊天 */
@@ -1290,8 +1290,8 @@ button {
 
 .member-select:focus,
 .member-input:focus {
-  border-color: #FF7A00;
-  box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.15);
+  border-color: #FF6F2C;
+  box-shadow: 0 0 0 3px rgba(255, 111, 44, 0.15);
 }
 
 .member-player-preview {
@@ -1300,8 +1300,8 @@ button {
   gap: 0.8rem;
   margin-top: 0.8rem;
   padding: 0.8rem 1rem;
-  background: rgba(255, 122, 0, 0.06);
-  border: 1px solid rgba(255, 122, 0, 0.2);
+  background: rgba(255, 111, 44, 0.06);
+  border: 1px solid rgba(255, 111, 44, 0.2);
   border-radius: 0.7rem;
 }
 
@@ -1314,7 +1314,7 @@ button {
   align-items: center;
   justify-content: center;
   font-size: 1.3rem;
-  color: #FF7A00;
+  color: #FF6F2C;
   font-weight: 800;
   overflow: hidden;
 }
@@ -1344,13 +1344,13 @@ button {
 }
 
 .member-radio:hover {
-  border-color: #FF7A00;
-  color: #FF7A00;
+  border-color: #FF6F2C;
+  color: #FF6F2C;
 }
 
 .member-radio.active {
-  background: #FF7A00;
-  border-color: #FF7A00;
+  background: #FF6F2C;
+  border-color: #FF6F2C;
   color: #fff;
   font-weight: 700;
 }
@@ -1359,8 +1359,8 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(255, 122, 0, 0.06);
-  border: 1px solid rgba(255, 122, 0, 0.25);
+  background: rgba(255, 111, 44, 0.06);
+  border: 1px solid rgba(255, 111, 44, 0.25);
   border-radius: 0.9rem;
   padding: 1.2rem 1.4rem;
   margin: 1.5rem 0;
@@ -1370,7 +1370,7 @@ button {
   width: 100%;
   padding: 0.95rem;
   border-radius: 0.7rem;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   color: #fff;
   border: none;
   font-size: 1rem;
@@ -1382,7 +1382,7 @@ button {
 
 .member-submit-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(255, 122, 0, 0.4);
+  box-shadow: 0 6px 16px rgba(255, 111, 44, 0.4);
 }
 
 .member-tabs {
@@ -1404,13 +1404,13 @@ button {
 }
 
 .member-tab:hover {
-  color: #FF7A00;
-  border-color: #FF7A00;
+  color: #FF6F2C;
+  border-color: #FF6F2C;
 }
 
 .member-tab.active {
-  background: #FF7A00;
-  border-color: #FF7A00;
+  background: #FF6F2C;
+  border-color: #FF6F2C;
   color: #fff;
   font-weight: 700;
 }
@@ -1419,8 +1419,8 @@ button {
   display: inline-block;
   padding: 0.15rem 0.6rem;
   border-radius: 999px;
-  background: rgba(255, 122, 0, 0.15);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.15);
+  color: #FF6F2C;
   font-size: 0.72rem;
   font-weight: 700;
 }
@@ -1498,19 +1498,19 @@ button {
 }
 
 .member-btn-ghost:hover {
-  border-color: #FF7A00;
-  color: #FF7A00;
+  border-color: #FF6F2C;
+  color: #FF6F2C;
 }
 
 .member-btn-primary {
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   border: none;
   color: #fff;
 }
 
 .member-btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(255, 122, 0, 0.4);
+  box-shadow: 0 6px 16px rgba(255, 111, 44, 0.4);
 }
 
 .member-chat-list {
@@ -1532,8 +1532,8 @@ button {
 }
 
 .member-chat-item:hover {
-  background: rgba(255, 122, 0, 0.06);
-  border-color: rgba(255, 122, 0, 0.3);
+  background: rgba(255, 111, 44, 0.06);
+  border-color: rgba(255, 111, 44, 0.3);
 }
 
 .member-chat-avatar {
@@ -1545,7 +1545,7 @@ button {
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
-  color: #FF7A00;
+  color: #FF6F2C;
   font-weight: 800;
   overflow: hidden;
   flex-shrink: 0;
@@ -1594,7 +1594,7 @@ button {
   height: 1.2rem;
   padding: 0 0.3rem;
   border-radius: 999px;
-  background: #FF7A00;
+  background: #FF6F2C;
   color: #fff;
   font-size: 0.7rem;
   font-weight: 700;
@@ -1626,7 +1626,7 @@ button {
   padding: 1.2rem 1.2rem;
   font-size: 1.2rem;
   font-weight: 800;
-  color: #FF7A00;
+  color: #FF6F2C;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -1651,12 +1651,12 @@ button {
 }
 
 .player-nav-item:hover {
-  background: rgba(255, 122, 0, 0.1);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.1);
+  color: #FF6F2C;
 }
 
 .player-nav-item.active {
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   color: #fff;
   font-weight: 700;
 }
@@ -1689,9 +1689,9 @@ button {
   width: 100%;
   padding: 0.5rem;
   border-radius: 0.45rem;
-  background: rgba(255, 122, 0, 0.15);
-  border: 1px solid rgba(255, 122, 0, 0.4);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.15);
+  border: 1px solid rgba(255, 111, 44, 0.4);
+  color: #FF6F2C;
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
@@ -1700,7 +1700,7 @@ button {
 }
 
 .player-logout:hover {
-  background: #FF7A00;
+  background: #FF6F2C;
   color: #fff;
 }
 
@@ -1769,8 +1769,8 @@ button {
 }
 
 .player-action-card:hover {
-  background: rgba(255, 122, 0, 0.1);
-  border-color: rgba(255, 122, 0, 0.4);
+  background: rgba(255, 111, 44, 0.1);
+  border-color: rgba(255, 111, 44, 0.4);
   transform: translateY(-2px);
 }
 
@@ -1804,7 +1804,7 @@ button {
 
 .player-more {
   font-size: 0.85rem;
-  color: #FF7A00;
+  color: #FF6F2C;
 }
 
 .player-more:hover {
@@ -1849,13 +1849,13 @@ button {
 }
 
 .player-filter-chip:hover {
-  border-color: #FF7A00;
-  color: #FF7A00;
+  border-color: #FF6F2C;
+  color: #FF6F2C;
 }
 
 .player-filter-chip.active {
-  background: #FF7A00;
-  border-color: #FF7A00;
+  background: #FF6F2C;
+  border-color: #FF6F2C;
   color: #fff;
   font-weight: 700;
 }
@@ -1875,8 +1875,8 @@ button {
 }
 
 .player-hall-item:hover {
-  border-color: rgba(255, 122, 0, 0.3);
-  background: rgba(255, 122, 0, 0.04);
+  border-color: rgba(255, 111, 44, 0.3);
+  background: rgba(255, 111, 44, 0.04);
 }
 
 .player-hall-top {
@@ -1900,8 +1900,8 @@ button {
 
 .player-hall-tier {
   font-size: 0.72rem;
-  color: #FF7A00;
-  background: rgba(255, 122, 0, 0.15);
+  color: #FF6F2C;
+  background: rgba(255, 111, 44, 0.15);
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
   font-weight: 700;
@@ -1945,8 +1945,8 @@ button {
 }
 
 .player-order-item:hover {
-  background: rgba(255, 122, 0, 0.08);
-  border-color: rgba(255, 122, 0, 0.3);
+  background: rgba(255, 111, 44, 0.08);
+  border-color: rgba(255, 111, 44, 0.3);
 }
 
 .player-order-title {
@@ -1981,8 +1981,8 @@ button {
   display: inline-block;
   padding: 0.15rem 0.6rem;
   border-radius: 999px;
-  background: rgba(255, 122, 0, 0.15);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.15);
+  color: #FF6F2C;
   font-size: 0.72rem;
   font-weight: 700;
 }
@@ -2006,13 +2006,13 @@ button {
 }
 
 .player-tab:hover {
-  color: #FF7A00;
-  border-color: #FF7A00;
+  color: #FF6F2C;
+  border-color: #FF6F2C;
 }
 
 .player-tab.active {
-  background: #FF7A00;
-  border-color: #FF7A00;
+  background: #FF6F2C;
+  border-color: #FF6F2C;
   color: #fff;
   font-weight: 700;
 }
@@ -2090,19 +2090,19 @@ button {
 }
 
 .player-btn-ghost:hover {
-  border-color: #FF7A00;
-  color: #FF7A00;
+  border-color: #FF6F2C;
+  color: #FF6F2C;
 }
 
 .player-btn-primary {
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   border: none;
   color: #fff;
 }
 
 .player-btn-primary:hover:not(.disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(255, 122, 0, 0.4);
+  box-shadow: 0 6px 16px rgba(255, 111, 44, 0.4);
 }
 
 .player-btn-primary.disabled {
@@ -2130,15 +2130,15 @@ button {
 }
 
 .player-chat-item:hover {
-  background: rgba(255, 122, 0, 0.06);
-  border-color: rgba(255, 122, 0, 0.3);
+  background: rgba(255, 111, 44, 0.06);
+  border-color: rgba(255, 111, 44, 0.3);
 }
 
 .player-chat-avatar {
   width: 2.8rem;
   height: 2.8rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2186,7 +2186,7 @@ button {
   height: 1.2rem;
   padding: 0 0.3rem;
   border-radius: 999px;
-  background: #FF7A00;
+  background: #FF6F2C;
   color: #fff;
   font-size: 0.7rem;
   font-weight: 700;
@@ -2199,8 +2199,8 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  background: rgba(255, 122, 0, 0.06);
-  border: 1px solid rgba(255, 122, 0, 0.25);
+  background: rgba(255, 111, 44, 0.06);
+  border: 1px solid rgba(255, 111, 44, 0.25);
   border-radius: 0.9rem;
   padding: 1.2rem 1.4rem;
   margin-bottom: 1.8rem;
@@ -2231,7 +2231,12 @@ button {
 }
 
 .player-toggle.on {
-  background: #FF7A00;
+  background: #FF6F2C;
+}
+
+.player-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .player-toggle-dot {
@@ -2279,8 +2284,8 @@ button {
 
 .player-price-tier {
   font-size: 0.72rem;
-  color: #FF7A00;
-  background: rgba(255, 122, 0, 0.15);
+  color: #FF6F2C;
+  background: rgba(255, 111, 44, 0.15);
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
   font-weight: 700;
@@ -2302,7 +2307,7 @@ button {
   width: 5rem;
   padding: 0.4rem 0.6rem;
   border-radius: 0.4rem;
-  border: 1px solid #FF7A00;
+  border: 1px solid #FF6F2C;
   background: rgba(255, 255, 255, 0.06);
   color: #fff;
   font-family: inherit;
@@ -2336,8 +2341,8 @@ button {
 .player-select:focus,
 .player-input:focus,
 .player-textarea:focus {
-  border-color: #FF7A00;
-  box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.15);
+  border-color: #FF6F2C;
+  box-shadow: 0 0 0 3px rgba(255, 111, 44, 0.15);
 }
 
 .player-add-form .player-select {
@@ -2352,7 +2357,7 @@ button {
 
 .player-note {
   background: rgba(255, 255, 255, 0.04);
-  border: 1px dashed rgba(255, 122, 0, 0.3);
+  border: 1px dashed rgba(255, 111, 44, 0.3);
   border-radius: 0.7rem;
   padding: 0.9rem 1.1rem;
   color: rgba(255, 255, 255, 0.55);
@@ -2363,9 +2368,9 @@ button {
 .player-btn-sm {
   padding: 0.3rem 0.8rem;
   border-radius: 0.4rem;
-  background: rgba(255, 122, 0, 0.15);
-  border: 1px solid rgba(255, 122, 0, 0.4);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.15);
+  border: 1px solid rgba(255, 111, 44, 0.4);
+  color: #FF6F2C;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
@@ -2374,12 +2379,12 @@ button {
 }
 
 .player-btn-sm:hover {
-  background: #FF7A00;
+  background: #FF6F2C;
   color: #fff;
 }
 
 .player-wallet-card {
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   border-radius: 1rem;
   padding: 2rem 1.8rem;
   margin-bottom: 2rem;
@@ -2420,7 +2425,7 @@ button {
 
 .player-wallet-btn {
   background: rgba(255, 255, 255, 0.95);
-  color: #FF7A00;
+  color: #FF6F2C;
   border: none;
   padding: 0.7rem 1.8rem;
   border-radius: 999px;
@@ -2510,7 +2515,7 @@ button {
   height: 5rem;
   margin: 0 auto 1.5rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2529,19 +2534,19 @@ button {
   width: 5rem;
   height: 5rem;
   border-radius: 0.6rem;
-  border: 1px dashed rgba(255, 122, 0, 0.5);
-  background: rgba(255, 122, 0, 0.06);
+  border: 1px dashed rgba(255, 111, 44, 0.5);
+  background: rgba(255, 111, 44, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.6rem;
-  color: #FF7A00;
+  color: #FF6F2C;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .player-screenshot-add:hover {
-  background: rgba(255, 122, 0, 0.15);
+  background: rgba(255, 111, 44, 0.15);
 }
 
 .player-screenshot-hint {
@@ -2553,7 +2558,7 @@ button {
   width: 100%;
   padding: 0.9rem;
   border-radius: 0.7rem;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   color: #fff;
   border: none;
   font-size: 1rem;
@@ -2566,7 +2571,7 @@ button {
 
 .player-submit-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(255, 122, 0, 0.4);
+  box-shadow: 0 6px 16px rgba(255, 111, 44, 0.4);
 }
 
 /* ============================================================
@@ -2593,7 +2598,7 @@ button {
   padding: 1.2rem 1.2rem;
   font-size: 1.2rem;
   font-weight: 800;
-  color: #FF7A00;
+  color: #FF6F2C;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -2618,12 +2623,12 @@ button {
 }
 
 .shop-nav-item:hover {
-  background: rgba(255, 122, 0, 0.1);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.1);
+  color: #FF6F2C;
 }
 
 .shop-nav-item.active {
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   color: #fff;
   font-weight: 700;
 }
@@ -2656,9 +2661,9 @@ button {
   width: 100%;
   padding: 0.5rem;
   border-radius: 0.45rem;
-  background: rgba(255, 122, 0, 0.15);
-  border: 1px solid rgba(255, 122, 0, 0.4);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.15);
+  border: 1px solid rgba(255, 111, 44, 0.4);
+  color: #FF6F2C;
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
@@ -2667,7 +2672,7 @@ button {
 }
 
 .shop-logout:hover {
-  background: #FF7A00;
+  background: #FF6F2C;
   color: #fff;
 }
 
@@ -2743,7 +2748,7 @@ button {
 
 .shop-more {
   font-size: 0.85rem;
-  color: #FF7A00;
+  color: #FF6F2C;
 }
 
 .shop-more:hover {
@@ -2763,8 +2768,8 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, rgba(255, 122, 0, 0.15), rgba(249, 115, 22, 0.08));
-  border: 1px solid rgba(255, 122, 0, 0.3);
+  background: linear-gradient(135deg, rgba(255, 111, 44, 0.15), rgba(232, 93, 31, 0.08));
+  border: 1px solid rgba(255, 111, 44, 0.3);
   border-radius: 0.9rem;
   padding: 1.4rem 1.6rem;
 }
@@ -2778,7 +2783,7 @@ button {
 .shop-earning-value {
   font-size: 2rem;
   font-weight: 800;
-  color: #FF7A00;
+  color: #FF6F2C;
 }
 
 .shop-player-grid {
@@ -2800,7 +2805,7 @@ button {
   height: 3.5rem;
   margin: 0 auto 0.6rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2820,8 +2825,8 @@ button {
   display: inline-block;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #FF7A00;
-  background: rgba(255, 122, 0, 0.15);
+  color: #FF6F2C;
+  background: rgba(255, 111, 44, 0.15);
   padding: 0.12rem 0.5rem;
   border-radius: 999px;
   margin-bottom: 0.4rem;
@@ -2857,7 +2862,7 @@ button {
 .shop-commission-rate {
   font-size: 1rem;
   font-weight: 800;
-  color: #FF7A00;
+  color: #FF6F2C;
 }
 
 .shop-table-wrap {
@@ -2894,7 +2899,7 @@ button {
 }
 
 .shop-table tbody tr:hover {
-  background: rgba(255, 122, 0, 0.06);
+  background: rgba(255, 111, 44, 0.06);
 }
 
 .shop-badge {
@@ -2913,8 +2918,8 @@ button {
 }
 
 .shop-badge-orange {
-  background: rgba(255, 122, 0, 0.2);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.2);
+  color: #FF6F2C;
 }
 
 .shop-badge-gray {
@@ -2925,9 +2930,9 @@ button {
 .shop-btn-sm {
   padding: 0.3rem 0.8rem;
   border-radius: 0.4rem;
-  background: rgba(255, 122, 0, 0.15);
-  border: 1px solid rgba(255, 122, 0, 0.4);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.15);
+  border: 1px solid rgba(255, 111, 44, 0.4);
+  color: #FF6F2C;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
@@ -2937,7 +2942,7 @@ button {
 }
 
 .shop-btn-sm:hover {
-  background: #FF7A00;
+  background: #FF6F2C;
   color: #fff;
 }
 
@@ -2955,7 +2960,7 @@ button {
 .shop-btn-primary {
   padding: 0.6rem 1.4rem;
   border-radius: 0.5rem;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   border: none;
   color: #fff;
   font-size: 0.9rem;
@@ -2967,7 +2972,7 @@ button {
 
 .shop-btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(255, 122, 0, 0.4);
+  box-shadow: 0 6px 16px rgba(255, 111, 44, 0.4);
 }
 
 .shop-price-list {
@@ -3019,7 +3024,7 @@ button {
   width: 5rem;
   padding: 0.4rem 0.6rem;
   border-radius: 0.4rem;
-  border: 1px solid #FF7A00;
+  border: 1px solid #FF6F2C;
   background: rgba(255, 255, 255, 0.06);
   color: #fff;
   font-family: inherit;
@@ -3053,13 +3058,13 @@ button {
 
 .shop-select:focus,
 .shop-input:focus {
-  border-color: #FF7A00;
-  box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.15);
+  border-color: #FF6F2C;
+  box-shadow: 0 0 0 3px rgba(255, 111, 44, 0.15);
 }
 
 .shop-note {
   background: rgba(255, 255, 255, 0.04);
-  border: 1px dashed rgba(255, 122, 0, 0.3);
+  border: 1px dashed rgba(255, 111, 44, 0.3);
   border-radius: 0.7rem;
   padding: 0.9rem 1.1rem;
   color: rgba(255, 255, 255, 0.55);
@@ -3229,9 +3234,9 @@ button {
 .player-avatar-btn {
   padding: 0.4rem 1rem;
   border-radius: 0.5rem;
-  background: rgba(255, 122, 0, 0.15);
-  border: 1px solid rgba(255, 122, 0, 0.4);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.15);
+  border: 1px solid rgba(255, 111, 44, 0.4);
+  color: #FF6F2C;
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
@@ -3240,7 +3245,7 @@ button {
 }
 
 .player-avatar-btn:hover {
-  background: #FF7A00;
+  background: #FF6F2C;
   color: #fff;
 }
 
@@ -3259,8 +3264,8 @@ button {
    管理端：创建卡片 / 表单
    ============================================================ */
 .admin-create-card {
-  background: rgba(255, 122, 0, 0.06);
-  border: 1px solid rgba(255, 122, 0, 0.25);
+  background: rgba(255, 111, 44, 0.06);
+  border: 1px solid rgba(255, 111, 44, 0.25);
   border-radius: 0.9rem;
   padding: 1.3rem 1.5rem;
   margin-bottom: 1.5rem;
@@ -3306,8 +3311,8 @@ button {
 
 .admin-form-field input:focus,
 .admin-form-field select:focus {
-  border-color: #FF7A00;
-  box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.15);
+  border-color: #FF6F2C;
+  box-shadow: 0 0 0 3px rgba(255, 111, 44, 0.15);
 }
 
 .admin-form-error {
@@ -3324,7 +3329,7 @@ button {
 .admin-btn-primary {
   padding: 0.6rem 1.3rem;
   border-radius: 0.55rem;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   color: #fff;
   border: none;
   font-size: 0.9rem;
@@ -3336,7 +3341,7 @@ button {
 
 .admin-btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(255, 122, 0, 0.4);
+  box-shadow: 0 6px 16px rgba(255, 111, 44, 0.4);
 }
 
 .admin-btn-danger {
@@ -3352,7 +3357,7 @@ button {
 
 .admin-note {
   background: rgba(255, 255, 255, 0.04);
-  border: 1px dashed rgba(255, 122, 0, 0.3);
+  border: 1px dashed rgba(255, 111, 44, 0.3);
   border-radius: 0.7rem;
   padding: 0.9rem 1.1rem;
   color: rgba(255, 255, 255, 0.55);
@@ -3425,8 +3430,8 @@ button {
 }
 
 .admin-modal .admin-form-field input:focus {
-  border-color: #FF7A00;
-  box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.15);
+  border-color: #FF6F2C;
+  box-shadow: 0 0 0 3px rgba(255, 111, 44, 0.15);
 }
 
 .admin-modal .admin-form-field input:disabled {
@@ -3455,8 +3460,8 @@ button {
 }
 
 .admin-btn-ghost:hover {
-  border-color: #FF7A00;
-  color: #FF7A00;
+  border-color: #FF6F2C;
+  color: #FF6F2C;
 }
 
 .admin-modal-actions .admin-btn-primary {
@@ -3541,14 +3546,14 @@ button {
 }
 
 .review-tag:hover {
-  border-color: #FF7A00;
-  color: #FF7A00;
+  border-color: #FF6F2C;
+  color: #FF6F2C;
 }
 
 .review-tag.active {
-  background: rgba(255, 122, 0, 0.2);
-  border-color: #FF7A00;
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.2);
+  border-color: #FF6F2C;
+  color: #FF6F2C;
   font-weight: 700;
 }
 
@@ -3567,8 +3572,8 @@ button {
 }
 
 .review-textarea:focus {
-  border-color: #FF7A00;
-  box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.15);
+  border-color: #FF6F2C;
+  box-shadow: 0 0 0 3px rgba(255, 111, 44, 0.15);
 }
 
 .review-anon {
@@ -3611,8 +3616,8 @@ button {
 }
 
 .shop-action-card:hover {
-  background: rgba(255, 122, 0, 0.1);
-  border-color: rgba(255, 122, 0, 0.4);
+  background: rgba(255, 111, 44, 0.1);
+  border-color: rgba(255, 111, 44, 0.4);
   transform: translateY(-2px);
 }
 
@@ -3653,13 +3658,13 @@ button {
 
 .chat-room-back {
   font-size: 1.4rem;
-  color: #FF7A00;
+  color: #FF6F2C;
   font-weight: 700;
   padding: 0 0.4rem;
 }
 
 .chat-room-back:hover {
-  color: #F97316;
+  color: #E85D1F;
 }
 
 .chat-room-peer {
@@ -3672,7 +3677,7 @@ button {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3754,7 +3759,7 @@ button {
 }
 
 .chat-msg.mine .chat-msg-bubble {
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   color: #fff;
 }
 
@@ -3799,8 +3804,8 @@ button {
 }
 
 .chat-room-textarea:focus {
-  border-color: #FF7A00;
-  box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.15);
+  border-color: #FF6F2C;
+  box-shadow: 0 0 0 3px rgba(255, 111, 44, 0.15);
 }
 
 .chat-room-textarea:disabled {
@@ -3811,7 +3816,7 @@ button {
 .chat-room-send {
   padding: 0 1.4rem;
   border-radius: 0.6rem;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   color: #fff;
   border: none;
   font-size: 0.9rem;
@@ -3823,7 +3828,7 @@ button {
 
 .chat-room-send:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(255, 122, 0, 0.4);
+  box-shadow: 0 6px 16px rgba(255, 111, 44, 0.4);
 }
 
 .chat-room-send:disabled {
@@ -3925,19 +3930,19 @@ button {
 }
 
 .chat-order-card-btn.ghost:hover {
-  border-color: #FF7A00;
-  color: #FF7A00;
+  border-color: #FF6F2C;
+  color: #FF6F2C;
 }
 
 .chat-order-card-btn.primary {
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   color: #fff;
   border: none;
 }
 
 .chat-order-card-btn.primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(255, 122, 0, 0.4);
+  box-shadow: 0 6px 16px rgba(255, 111, 44, 0.4);
 }
 
 .chat-order-card-btn:disabled {
@@ -3984,7 +3989,7 @@ button {
 .member-nav-item.active .member-nav-badge,
 .player-nav-item.active .player-nav-badge {
   background: #fff;
-  color: #FF7A00;
+  color: #FF6F2C;
 }
 
 /* ============================================================
@@ -4010,13 +4015,13 @@ button {
 }
 
 .admin-tab:hover {
-  color: #FF7A00;
-  border-color: #FF7A00;
+  color: #FF6F2C;
+  border-color: #FF6F2C;
 }
 
 .admin-tab.active {
-  background: #FF7A00;
-  border-color: #FF7A00;
+  background: #FF6F2C;
+  border-color: #FF6F2C;
   color: #fff;
   font-weight: 700;
 }
@@ -4040,10 +4045,10 @@ button {
 .shop-price-group-title {
   font-size: 1rem;
   font-weight: 800;
-  color: #FF7A00;
+  color: #FF6F2C;
   margin-bottom: 0.8rem;
   padding-bottom: 0.6rem;
-  border-bottom: 1px dashed rgba(255, 122, 0, 0.25);
+  border-bottom: 1px dashed rgba(255, 111, 44, 0.25);
 }
 
 .shop-price-group .shop-price-item {
@@ -4089,14 +4094,14 @@ button {
 }
 
 .player-status-toggle.status-offline:hover:not(:disabled) {
-  border-color: #FF7A00;
-  color: #FF7A00;
+  border-color: #FF6F2C;
+  color: #FF6F2C;
 }
 
 .player-status-toggle.status-busy {
-  background: rgba(255, 122, 0, 0.15);
-  border-color: rgba(255, 122, 0, 0.4);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.15);
+  border-color: rgba(255, 111, 44, 0.4);
+  color: #FF6F2C;
   cursor: not-allowed;
 }
 
@@ -4131,14 +4136,14 @@ button {
 }
 
 .identity-tag.shop {
-  background: linear-gradient(135deg, #FFB300, #FF7A00);
+  background: linear-gradient(135deg, #FFB300, #FF6F2C);
   color: #fff;
 }
 
 .identity-tag.freelance {
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.4);
+  background: rgba(91, 196, 184, 0.15);
+  color: #A1E6DD;
+  border: 1px solid rgba(91, 196, 184, 0.4);
 }
 
 .identity-tag.pending {
@@ -4162,152 +4167,6 @@ button {
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
-}
-
-/* ============================================================
-   详情页身份标签（如果还没加）
-   ============================================================ */
-.detail-identities {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.6rem;
-}
-
-.identity-tag {
-  display: inline-block;
-  padding: 0.25rem 0.7rem;
-  border-radius: 999px;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.identity-tag.shop {
-  background: linear-gradient(135deg, #FFB300, #FF7A00);
-  color: #fff;
-}
-
-.identity-tag.freelance {
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.4);
-}
-
-.identity-tag.pending {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* ============================================================
-   卡片身份标签
-   ============================================================ */
-.card-identities {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  margin-top: 0.4rem;
-}
-
-.card-identities .identity-tag {
-  display: inline-block;
-  border-radius: 999px;
-  font-weight: 700;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.identity-tag {
-  display: inline-block;
-  padding: 0.25rem 0.7rem;
-  border-radius: 999px;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.identity-tag.shop {
-  background: linear-gradient(135deg, #FFB300, #FF7A00);
-  color: #fff;
-}
-
-.identity-tag.freelance {
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.4);
-}
-
-.identity-tag.pending {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.detail-identities {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.6rem;
-}
-
-/* 散陪开关（复用之前的 player-toggle-card 样式） */
-.player-toggle-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  background: rgba(255, 122, 0, 0.06);
-  border: 1px solid rgba(255, 122, 0, 0.25);
-  border-radius: 0.9rem;
-  padding: 1.2rem 1.4rem;
-  margin-bottom: 1.8rem;
-}
-
-.player-toggle-title {
-  font-size: 1rem;
-  font-weight: 800;
-  color: #fff;
-  margin-bottom: 0.3rem;
-}
-
-.player-toggle-desc {
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.player-toggle {
-  position: relative;
-  width: 3rem;
-  height: 1.6rem;
-  border-radius: 999px;
-  border: none;
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.15);
-  transition: background 0.2s;
-  flex-shrink: 0;
-}
-
-.player-toggle.on {
-  background: #FF7A00;
-}
-
-.player-toggle:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.player-toggle-dot {
-  position: absolute;
-  top: 0.2rem;
-  left: 0.2rem;
-  width: 1.2rem;
-  height: 1.2rem;
-  border-radius: 50%;
-  background: #fff;
-  transition: transform 0.2s;
-}
-
-.player-toggle.on .player-toggle-dot {
-  transform: translateX(1.4rem);
 }
 
 /* ============================================================
@@ -4333,13 +4192,13 @@ button {
 }
 
 .chat-mute-btn.muted {
-  background: rgba(255, 122, 0, 0.15);
-  border-color: rgba(255, 122, 0, 0.4);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.15);
+  border-color: rgba(255, 111, 44, 0.4);
+  color: #FF6F2C;
 }
 
 .chat-mute-btn.muted:hover:not(:disabled) {
-  background: rgba(255, 122, 0, 0.25);
+  background: rgba(255, 111, 44, 0.25);
 }
 
 .chat-mute-btn:disabled {
@@ -4376,7 +4235,7 @@ button {
   width: 2.6rem;
   height: 2.6rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4446,7 +4305,7 @@ button {
   width: 5rem;
   height: 5rem;
   border-radius: 1rem;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4514,15 +4373,15 @@ button {
 }
 
 .shop-tab:hover {
-  border-color: #FF7A00;
-  color: #FF7A00;
+  border-color: #FF6F2C;
+  color: #FF6F2C;
 }
 
 .shop-tab.active {
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   border-color: transparent;
   color: #fff;
-  box-shadow: 0 4px 12px rgba(255, 122, 0, 0.35);
+  box-shadow: 0 4px 12px rgba(255, 111, 44, 0.35);
 }
 
 .shop-tab-logo {
@@ -4552,7 +4411,7 @@ button {
   color: #fff;
   margin-bottom: 1rem;
   padding-left: 0.6rem;
-  border-left: 3px solid #FF7A00;
+  border-left: 3px solid #FF6F2C;
 }
 
 /* 老板权益 */
@@ -4594,8 +4453,8 @@ button {
   font-weight: 700;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  background: rgba(255, 122, 0, 0.15);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.15);
+  color: #FF6F2C;
 }
 
 .shop-price-rank {
@@ -4637,7 +4496,7 @@ button {
 
 .shop-player-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(255, 122, 0, 0.2);
+  box-shadow: 0 8px 20px rgba(255, 111, 44, 0.2);
 }
 
 .shop-player-avatar {
@@ -4649,7 +4508,7 @@ button {
   align-items: center;
   justify-content: center;
   font-size: 1.4rem;
-  color: #FF7A00;
+  color: #FF6F2C;
   font-weight: 800;
   overflow: hidden;
 }
@@ -4687,9 +4546,9 @@ button {
   flex: 1;
   padding: 0.9rem;
   border-radius: 0.7rem;
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.4);
-  color: #818cf8;
+  background: rgba(91, 196, 184, 0.15);
+  border: 1px solid rgba(91, 196, 184, 0.4);
+  color: #A1E6DD;
   font-size: 1rem;
   font-weight: 800;
   cursor: pointer;
@@ -4698,7 +4557,7 @@ button {
 }
 
 .detail-chat-btn:hover:not(:disabled) {
-  background: rgba(99, 102, 241, 0.25);
+  background: rgba(91, 196, 184, 0.25);
 }
 
 .detail-chat-btn:disabled {
@@ -4712,9 +4571,9 @@ button {
   justify-content: center;
   padding: 0.5rem;
   border-radius: 0.6rem;
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.4);
-  color: #818cf8;
+  background: rgba(91, 196, 184, 0.15);
+  border: 1px solid rgba(91, 196, 184, 0.4);
+  color: #A1E6DD;
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
@@ -4723,7 +4582,7 @@ button {
 }
 
 .btn-chat-card:hover:not(:disabled) {
-  background: rgba(99, 102, 241, 0.3);
+  background: rgba(91, 196, 184, 0.3);
 }
 
 .btn-chat-card:disabled {
@@ -4744,8 +4603,8 @@ button {
   gap: 0.5rem;
   padding: 0.35rem 0.8rem 0.35rem 0.35rem;
   border-radius: 999px;
-  border: 1px solid rgba(255, 122, 0, 0.4);
-  background: rgba(255, 122, 0, 0.15);
+  border: 1px solid rgba(255, 111, 44, 0.4);
+  background: rgba(255, 111, 44, 0.15);
   color: #fff;
   font-family: inherit;
   font-size: 0.88rem;
@@ -4754,15 +4613,15 @@ button {
 }
 
 .user-menu-trigger:hover {
-  background: rgba(255, 122, 0, 0.3);
-  border-color: #FF7A00;
+  background: rgba(255, 111, 44, 0.3);
+  border-color: #FF6F2C;
 }
 
 .user-menu-avatar {
   width: 1.8rem;
   height: 1.8rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FF7A00, #F97316);
+  background: linear-gradient(135deg, #FF6F2C, #E85D1F);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4831,7 +4690,7 @@ button {
 
 .user-menu-header-role {
   font-size: 0.72rem;
-  color: #FF7A00;
+  color: #FF6F2C;
   margin-top: 0.1rem;
 }
 
@@ -4854,8 +4713,8 @@ button {
 }
 
 .user-menu-item:hover {
-  background: rgba(255, 122, 0, 0.12);
-  color: #FF7A00;
+  background: rgba(255, 111, 44, 0.12);
+  color: #FF6F2C;
 }
 
 .user-menu-item-danger {
@@ -4888,9 +4747,9 @@ button {
   gap: 0.4rem;
   padding: 0.3rem 0.7rem;
   border-radius: 999px;
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.4);
+  background: rgba(91, 196, 184, 0.15);
+  color: #A1E6DD;
+  border: 1px solid rgba(91, 196, 184, 0.4);
   font-size: 0.82rem;
   font-weight: 700;
 }
@@ -4922,8 +4781,8 @@ button {
 }
 
 .tag.style-tag {
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
+  background: rgba(91, 196, 184, 0.15);
+  color: #A1E6DD;
 }
 
 /* 卡片标签 */
@@ -4947,8 +4806,8 @@ button {
 }
 
 .card-tag-mini.style {
-  background: rgba(99, 102, 241, 0.12);
-  color: #6366f1;
+  background: rgba(91, 196, 184, 0.12);
+  color: #5BC4B8;
 }
 
 .modal-overlay {
@@ -4988,7 +4847,7 @@ button {
   padding: 8px 24px;
   border-radius: 6px;
   border: none;
-  background: #FF7A00;
+  background: #FF6F2C;
   color: #fff;
   font-size: 0.95rem;
   cursor: pointer;

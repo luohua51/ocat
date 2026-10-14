@@ -86,7 +86,7 @@ export default function AdminOrdersPage() {
                     <td style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)' }}>{o.order_no}</td>
                     <td>
                       {o.order_type === 'scheduled' ? (
-                        <span style={{ color: '#a78bfa' }}>预约</span>
+                        <span style={{ color: '#A1E6DD' }}>预约</span>
                       ) : (
                         <span style={{ color: '#34d399' }}>实时</span>
                       )}

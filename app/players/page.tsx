@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -130,7 +130,7 @@ export default function PlayersListPage() {
                   {p.shopName}
                 </div>
               )}
-              <div style={{ fontSize: '0.85rem', color: '#FF7A00', fontWeight: 700 }}>
+              <div style={{ fontSize: '0.85rem', color: '#FF6F2C', fontWeight: 700 }}>
                 {p.price > 0 ? `¥${p.price}/时起` : '价格待定'}
               </div>
               <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)' }}>

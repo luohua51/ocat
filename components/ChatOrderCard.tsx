@@ -98,8 +98,8 @@ export default function ChatOrderCard({ orderId, role, onOrderUpdate }: Props) {
                 ? 'rgba(99,102,241,0.2)'
                 : isDone
                 ? 'rgba(5,150,105,0.2)'
-                : 'rgba(255,122,0,0.2)',
-            color: isPooling ? '#818cf8' : isDone ? '#34d399' : '#FF7A00',
+                : 'rgba(255,111,44,0.2)',
+            color: isPooling ? '#A1E6DD' : isDone ? '#34d399' : '#FF6F2C',
           }}
         >
           {ORDER_STATUS_TEXT[order.status] || order.status}

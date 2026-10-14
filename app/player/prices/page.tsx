@@ -243,7 +243,7 @@ export default function PlayerPricesPage() {
         <div
           style={{
             background: 'rgba(255,255,255,0.04)',
-            border: '1px dashed rgba(255,122,0,0.3)',
+            border: '1px dashed rgba(255,111,44,0.3)',
             borderRadius: '0.9rem',
             padding: '1.5rem 1.2rem',
             color: 'rgba(255,255,255,0.5)',

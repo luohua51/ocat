@@ -17,12 +17,12 @@ export const ORDER_STATUS_TEXT: Record<string, string> = {
 
 export const ORDER_STATUS_COLOR: Record<string, string> = {
   pending: '#9ca3af',
-  paid: '#FF7A00',
-  pending_player: '#FF7A00',
-  pooling: '#FF7A00',
-  locked: '#6366f1',
+  paid: '#FF6F2C',
+  pending_player: '#FF6F2C',
+  pooling: '#FF6F2C',
+  locked: '#5BC4B8',
   in_service: '#3b82f6',
-  finished: '#8b5cf6',
+  finished: '#A1E6DD',
   completed: '#059669',
   reviewed: '#059669',
   cancelled: '#6b7280',
